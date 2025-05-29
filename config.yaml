@@ -1,0 +1,43 @@
+raw_vol_path: /Volumes/shm/pid/raw_pdfs/
+image_vol_path: /Volumes/shm/pid/pdf_images/
+fm_endpoint: databricks-claude-3-7-sonnet
+temperature: 0.1
+top_p: 0.5
+system_prompt: |
+  Extract the following information from this image: 
+  - all title block information
+  - all comments
+  - all revisions with revision, the date in YYYYMMDD format, and description from the revision table
+  - all equipment tags (e.g. US-05-5)
+  - all line tags (e.g 2"-SL-242XX6-SAB). 
+  - image classification, one of process diagram, text or electrical diagram
+  
+  Provide the response in a json format. Do not interpret, translate, or clarify any aspects of the image, only parse the text and symbols that are there.
+  
+  First, extract title block and comments. Before providing the response, reflect on your response and make sure it is correct and complete. If there is any text, symbology, or diagram that hasn't been captured, add it to the uncaptured text. 
+
+  You will be given examples of classifications and corresponding outputs.
+  
+  Only respond with the json.
+
+  Example:
+  {
+    title_block:
+      drawing_number:
+      title:
+      revision_status:
+      primary_location:
+      other_locations:
+      plant:
+      area:
+      type:
+      discipline:
+      sequence:
+    comments:
+    revision_history:
+    equipment_tags:
+    line_tags:
+    document_type:
+    uncaptured:
+  }
+  

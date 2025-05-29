@@ -1,0 +1,49 @@
+comments:
+- 1. SEE DRAWINGS 240-0000-000-041-THRU 041-006 FOR SYMBOL IDENTIFICATION, GENERAL
+  NOTES & CONNECTION DETAILS.
+- 2. ALL EQUIPMENT TAG NUMBERS ARE PREFIXED BY "440-" UNLESS OTHERWISE STATED.
+- 'NOTES:'
+- '- RELIEF DISCHARGE PIPING SIZES'
+document_type: process diagram
+equipment_tags:
+- FT-16
+- FT-15
+- FT-15
+- FT-16
+- PI-01
+line_tags:
+- 10-FL-440-PAC
+- 2-FL-440-PAC
+- 6-FL-440-PAC
+- 10-FL-440-PAC
+- 2-FL-440-PAC-LB
+revision_history:
+- date: ''
+  description: ISSUED FOR PROFILE
+  revision: '0'
+- date: ''
+  description: ISSUED FOR REVIEW
+  revision: A
+- date: ''
+  description: ISSUED FOR PLOT REVIEW
+  revision: B
+- date: ''
+  description: ISSUED FOR INTERNAL REVIEW
+  revision: C
+- date: 17 Jul 2014
+  description: ISSUED FOR ESTIMATE
+  revision: ''
+title_block:
+  area: QUEST CCS PROJECT
+  discipline: ''
+  drawing_number: 440-0000-000-041-049
+  other_locations: ''
+  plant: SHELL CANADA
+  primary_location: ''
+  revision_status: '0'
+  sequence: ''
+  title: PIPING AND INSTRUMENTATION DIAGRAM QUEST CCS PROJECT UNIT 440 - HYDROGEN
+    MANUFACTURING UNIT ABSORBER AREA RELIEF COLLECTION
+  type: ''
+uncaptured: FREE DRAINING, TO FLARE HEADER, RELIEF HEADER, NITROGEN, FROM PV-4400,
+  FROM PV-4410, FROM PV-4411, PV-4401, PV-4402, PV-4403
