@@ -1,3 +1,8 @@
+processed_pdfs/*
+raw_pdfs/*
+tile_vol_path/*
+tiled_images/*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
