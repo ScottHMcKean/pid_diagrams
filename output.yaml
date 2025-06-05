@@ -1,49 +1,64 @@
 comments:
-- 1. SEE DRAWINGS 240-0000-000-041-THRU 041-006 FOR SYMBOL IDENTIFICATION, GENERAL
-  NOTES & CONNECTION DETAILS.
-- 2. ALL EQUIPMENT TAG NUMBERS ARE PREFIXED BY "440-" UNLESS OTHERWISE STATED.
-- 'NOTES:'
-- '- RELIEF DISCHARGE PIPING SIZES'
+- (BY VENDOR)
+- (SURFACE METAL TEMP)
+- (BY FAN VENDOR)
+- (NOTE 13) (TYP)
+- (NOTE 19)
 document_type: process diagram
 equipment_tags:
-- FT-16
-- FT-15
-- FT-15
-- FT-16
-- PI-01
+- S-24101
+- E-24103
+- E-24117
+- AITE-017
+- AITE-018
+- AE-017
+- AE-018
+- AP-017
+- AP-018
+- AI-018
+- AI-017
+- TP-241-10
+- TP-241-17
+- PY-133
+- AP-001
+- PP
+- TE-600
+- TE-601
+- TE-602
+- TE-603
+- TT-600
+- TT-601
+- TT-602
+- TT-603
+- TI-600
+- TI-601
+- TI-602
+- TI-603
+- FC-073A
 line_tags:
-- 10-FL-440-PAC
-- 2-FL-440-PAC
-- 6-FL-440-PAC
-- 10-FL-440-PAC
-- 2-FL-440-PAC-LB
-revision_history:
-- date: ''
-  description: ISSUED FOR PROFILE
-  revision: '0'
-- date: ''
-  description: ISSUED FOR REVIEW
-  revision: A
-- date: ''
-  description: ISSUED FOR PLOT REVIEW
-  revision: B
-- date: ''
-  description: ISSUED FOR INTERNAL REVIEW
-  revision: C
-- date: 17 Jul 2014
-  description: ISSUED FOR ESTIMATE
-  revision: ''
+- TP-F-241-10
+- TP-F-241-17
+revision_history: []
 title_block:
-  area: QUEST CCS PROJECT
+  area: ''
   discipline: ''
-  drawing_number: 440-0000-000-041-049
+  drawing_number: ''
   other_locations: ''
-  plant: SHELL CANADA
+  plant: ''
   primary_location: ''
-  revision_status: '0'
+  revision_status: ''
   sequence: ''
-  title: PIPING AND INSTRUMENTATION DIAGRAM QUEST CCS PROJECT UNIT 440 - HYDROGEN
-    MANUFACTURING UNIT ABSORBER AREA RELIEF COLLECTION
+  title: ''
   type: ''
-uncaptured: FREE DRAINING, TO FLARE HEADER, RELIEF HEADER, NITROGEN, FROM PV-4400,
-  FROM PV-4410, FROM PV-4411, PV-4401, PV-4402, PV-4403
+uncaptured:
+- COMBUSTION AIR SILENCER
+- COMBUSTION AIR PREHEATER
+- 'DESIGN DUTY: 9.371 MW'
+- "DESIGN TEMP: - STEAMSIDE: 250\xB0C"
+- "- AIRSIDE: 250\xB0C"
+- 'DESIGN PRESS: - STEAMSIDE: 500 kPa (ga)'
+- '- AIRSIDE: 5 kPa (ga)'
+- '- FULL VAC @ TEMP. IF REQUIR'
+- 'INSULATION: 38 mm'
+- DRAFT
+- HOLIM
