@@ -1,64 +1,11 @@
-comments:
-- (BY VENDOR)
-- (SURFACE METAL TEMP)
-- (BY FAN VENDOR)
-- (NOTE 13) (TYP)
-- (NOTE 19)
-document_type: process diagram
-equipment_tags:
-- S-24101
-- E-24103
-- E-24117
-- AITE-017
-- AITE-018
-- AE-017
-- AE-018
-- AP-017
-- AP-018
-- AI-018
-- AI-017
-- TP-241-10
-- TP-241-17
-- PY-133
-- AP-001
-- PP
-- TE-600
-- TE-601
-- TE-602
-- TE-603
-- TT-600
-- TT-601
-- TT-602
-- TT-603
-- TI-600
-- TI-601
-- TI-602
-- TI-603
-- FC-073A
-line_tags:
-- TP-F-241-10
-- TP-F-241-17
-revision_history: []
-title_block:
-  area: ''
-  discipline: ''
-  drawing_number: ''
-  other_locations: ''
-  plant: ''
-  primary_location: ''
-  revision_status: ''
-  sequence: ''
-  title: ''
-  type: ''
-uncaptured:
-- COMBUSTION AIR SILENCER
-- COMBUSTION AIR PREHEATER
-- 'DESIGN DUTY: 9.371 MW'
-- "DESIGN TEMP: - STEAMSIDE: 250\xB0C"
-- "- AIRSIDE: 250\xB0C"
-- 'DESIGN PRESS: - STEAMSIDE: 500 kPa (ga)'
-- '- AIRSIDE: 5 kPa (ga)'
-- '- FULL VAC @ TEMP. IF REQUIR'
-- 'INSULATION: 38 mm'
-- DRAFT
-- HOLIM
+drawingname: 002C-520-01-0352
+equipment tags: FY-2017A, FY-2017B, FY-2018, FY-2026A, FY-2026B, FY-2016B, ZI-2026,
+  ZSH-2026A, ZSH-2026B, FSLL-2017, FSL-2017, FIT-2017, FV-2026, FE-2017, TIT-2017,
+  TE-2017, TG-2017, HS-0836A, HS-2028
+moc numbers: ''
+organization: MRC
+primary location: '520'
+title: START COMBUSTION AIR SUPPLY UNIT
+uncaptured information: 'AIR INLET SILENCER, VENTURI, BAILEY JACK, PURGE, S/D BURNERS,
+  CROSS LIMITING, BOILER MASTER, FUEL GAS FLOW, FROM FK-2016, FROM FI-2035, TO FY-2016C,
+  BMS, NOTE 3, NOTE 5, REFER TO DWG. # 002C-520-01-0352/2'
