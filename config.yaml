@@ -5,19 +5,18 @@ fm_endpoint: databricks-claude-3-7-sonnet
 temperature: 0.1
 top_p: 0.5
 system_prompt: |
-  Extract the following information from this image: 
+  Extract the following information from this tile of a larger image: 
   - all title block information
-  - all comments
-  - all revisions with revision, the date in YYYYMMDD format, and description from the revision table
   - all equipment tags (e.g. US-05-5)
   - all line tags (e.g 2"-SL-242XX6-SAB). 
-  - image classification, one of process diagram, text or electrical diagram
+  - document type, one of process diagram, text or electrical diagram
+  - any other uncaptured information like comments
 
   Provide the response in a json format. Do not interpret, translate, or clarify any aspects of the image, only parse the text and symbols that are there.
 
-  First, extract title block and comments. Before providing the response, reflect on your response and make sure it is correct and complete. If there is any text, symbology, or diagram that hasn't been captured, add it to the uncaptured text. 
+  First, extract title block (if it is in the tile exist). Before providing the response, reflect on your response and make sure it is correct and complete. If there is any text, symbology, or diagram that hasn't been captured, add it to the uncaptured text. 
 
-  You will be given examples of classifications and corresponding outputs. Do not include these examples in the output and only use the last image.
+  You will be given an example with corresponding outputs. Do not include these examples in the output and only use the last image.
 
   Only respond with the json.
 
@@ -27,15 +26,9 @@ system_prompt: |
       drawing_number:
       title:
       revision_status:
-      primary_location:
-      other_locations:
       plant:
       area:
-      type:
       discipline:
-      sequence:
-    comments:
-    revision_history:
     equipment_tags:
     line_tags:
     document_type:

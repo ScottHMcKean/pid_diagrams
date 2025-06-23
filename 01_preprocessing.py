@@ -7,6 +7,8 @@
 # MAGIC - getting one image per page
 # MAGIC - hashing the input
 # MAGIC - making a table
+# MAGIC
+# MAGIC It has been tested with serverless
 
 # COMMAND ----------
 
@@ -32,7 +34,7 @@ from src.process import tile_image_with_overlap
 
 # COMMAND ----------
 
-config = mlflow.models.ModelConfig(development_config="config_alb.yaml").to_dict()
+config = mlflow.models.ModelConfig(development_config="config.yaml").to_dict()
 
 # COMMAND ----------
 
