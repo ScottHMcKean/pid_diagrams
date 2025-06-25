@@ -1,0 +1,56 @@
+{
+    "equipment_tags": [
+        "ET-10",
+        "DL-23",
+        "DL-21",
+        "DL-XX",
+        "DL-15",
+        "DL-28",
+        "DL-13",
+        "DL-14",
+        "DL-01",
+        "DL-08",
+        "US-440-02-1",
+        "R-44001",
+        "US-440-11-1",
+        "R-44302",
+        "US-440-16-1",
+        "US-440-047"
+    ],
+    "line_tags": [
+        "1\"-SCL-441255-PJG",
+        "2\"-SCL-440022-PJB",
+        "1\"-SCL-441258-PJG",
+        "X\"-SCL-440091-SAB",
+        "2\"-SCL-440090-SAB",
+        "1\"-SCL-440077-SAG",
+        "1\"-SCL-441077-SAG",
+        "1\"-SCL-441035-SAG",
+        "1\"-SCL-440076-SAG",
+        "1\"-SCL-440057-SAB",
+        "1\"-SCL-440005-SAB",
+        "1\"-SCL-440069-SAB"
+    ],
+    "incoming_streams": [
+        "441.013"
+    ],
+    "outgoing_streams": [
+        "440.023"
+    ],
+    "moc_numbers": [
+        "11457"
+    ],
+    "comments": [
+        "PROCESS COND.",
+        "TO V-44111",
+        "NOTE 9",
+        "NOTE 12",
+        "NOTE 11",
+        "FOR MOC 11457 PROJECT USE ONLY",
+        "WORKING COPY OF MASTER DRAWING ASBUILT INFORMATION REQUIRED",
+        "UTILITY STATION",
+        "COMPRESSOR BUILDING",
+        "HC PSA BUILDING",
+        "QUEST UTILITY STATIONS"
+    ]
+}

@@ -1,0 +1,52 @@
+{
+    "equipment_tags": [
+        "DL-23",
+        "DL-20",
+        "DL-21",
+        "DL-22",
+        "DL-09",
+        "DL-08",
+        "TP-F",
+        "C-3"
+    ],
+    "line_tags": [
+        "1\"-SCL-441255-PJG",
+        "1\"-SCL-441260-PJG",
+        "1\"-SCL-441258-PJG",
+        "1\"-SCL-441257-PJG",
+        "2\"-SCL-440090-SAB",
+        "2\"-SCL-440043-PJB",
+        "1\"-SCL-440068-SAB",
+        "3\"-SCL-440023-SAB",
+        "1\"-SCL-440005-SAB",
+        "1\"-SCL-440069-SAB",
+        "X\"-SCL-440091-SAB"
+    ],
+    "incoming_streams": [],
+    "outgoing_streams": [
+        "440.023"
+    ],
+    "moc_numbers": [
+        "11457"
+    ],
+    "comments": [
+        "NOTES",
+        "FOR GENERAL NOTES AND LEGEND SEE DWGS 400.0000.000.041.001, 002, 003, 004, 005 AND 006.",
+        "SEE ESTG 3-1.01, FIGURES A-8, A-13, AND A-14 FOR TYPICAL CONDENSATE BOOT AND DRIP LEG HOOK-UPS.",
+        "DELETED.",
+        "ALL 1\" STEAM CONDENSATE RETURNS FROM UTILITY STATIONS TO BE INSULATED (H 38) AND TRACED (ET 10).",
+        "TRACE SECTION OF LINE NOT PROTECTED BY STEAM TRAPS.",
+        "DELETED.",
+        "DELETED.",
+        "DELETED.",
+        "PROCESS STEAM TRAP SUB HEADER (SEE DWG. 440.023).",
+        "SEE ESTG 3-1.01, PARAGRAPH 4.8.1 AND FIGURES A-18 THRU A-21 FOR UTILITY STATION DETAILS.",
+        "BLOCK AND BLIND VENT TO BE CONSIDERED FOR THE TIE-IN(BY SPC).",
+        "SPC TO PROVIDE INSULATION AND EHT FOR THEIR TIE-IN SCOPE.",
+        "TIE-IN POINTS FOR TIE-IN SHOWN AS TP-F-440-# AND FLUOR QUEST TIE-IN SHOWN AS TP-T-440-#",
+        "UTILITY STATIONS 440.047",
+        "QUEST",
+        "UTILITY STATION US-440-16-1",
+        "HMU PSA BUILDING R-44301"
+    ]
+}

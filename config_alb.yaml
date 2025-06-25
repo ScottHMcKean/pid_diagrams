@@ -58,7 +58,7 @@ metadata_prompt: |
     organization: CNRL
     moc_numbers: 22193534
     stamp: True
-    uncaptured_information:
+    comments:
   }
 tag_prompt: |
   You are an expert in parsing process and instrumentation diagrams and engineering drawings. You will be given a tile of drawing and your task is to extract the equipment tags and line numbers. You will be given examples of tiles and corresponding equipment tags. Do not use these examples in the output but reference them for context.

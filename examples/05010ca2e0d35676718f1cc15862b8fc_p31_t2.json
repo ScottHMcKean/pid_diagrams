@@ -1,0 +1,48 @@
+{
+    "equipment_tags": [
+        "E-44110",
+        "J-44103",
+        "J-44102",
+        "E-44119",
+        "E-44111",
+        "E-44113",
+        "241A",
+        "241B",
+        "241C"
+    ],
+    "line_tags": [
+        "3/4\"",
+        "3/4\"",
+        "3/4\"",
+        "3/4\"",
+        "3/4\"",
+        "3/4\"",
+        "20\"x18\"",
+        "20\"x18\"",
+        "18\"x16\"",
+        "22\"x18\""
+    ],
+    "incoming_streams": [],
+    "outgoing_streams": [],
+    "moc_numbers": [
+        "11457"
+    ],
+    "comments": [
+        "HP STEAM SUPERHEATER III",
+        "STEAM SUPERHEATER SPRAY ATTEMPERATOR II",
+        "STEAM SUPERHEATER SPRAY ATTEMPERATOR I",
+        "HP STEAM SUPERHEATER II",
+        "FEED/ STEAM PREHEATER I",
+        "COMBUSTION AIR HEATER II",
+        "FOR GENERAL NOTES AND LEGEND SEE DWGS 400.000.000.041.001, 002, 003, 004, 005 AND 006.",
+        "ALL INSTRUMENT LOOP AND INTERLOCK NUMBERS SHOWN ON P&ID SHALL HAVE A PREFIX \"441\" UNLESS OTHERWISE IDENTIFIED ON P&ID.",
+        "CONTINUATION OF CONVECTION BANK.",
+        "DELETED.",
+        "THERMOWELL BY REFORMER PACKAGE VENDOR. TEMPERATURE ELEMENT & REMOTE MOUNTED TRANSMITTER BY BECHTEL.",
+        "REFRACTORY LINED.",
+        "DELETED.",
+        "VORTEX FLOW METER TO BE MADE ACCESSIBLE.",
+        "TIE-IN POINTS-SPG TIE-IN SHOWN AS TP 441-# AND FLUOR QUEST TIE-IN SHOWN AS TP-441-#.",
+        "SIS INTERLOCK SEQUENCE NUMBER ADDED FOR QUEST."
+    ]
+}

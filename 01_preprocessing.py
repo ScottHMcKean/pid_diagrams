@@ -1,167 +1,141 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # Preprocessing
+# MAGIC # 1 - Preprocessing
 # MAGIC
-# MAGIC This notebook does preprocessing of PDFs, with the goal of
-# MAGIC - converting pdf to image files
-# MAGIC - getting one image per page
-# MAGIC - hashing the input
-# MAGIC - making a table
+# MAGIC This notebook preprocesses the PDFs, including:
+# MAGIC - converting single or multi page pdfs to image files
+# MAGIC - hashing the input and gathering metadata
+# MAGIC - making a driver table for the workflow
 # MAGIC
-# MAGIC It has been tested with serverless
+# MAGIC This notebook works with serverless.
 
 # COMMAND ----------
 
-# MAGIC %pip install pymupdf mlflow==2.22.0
+# MAGIC %pip install -U --quiet pdfplumber mlflow
 # MAGIC %restart_python
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC ## Ingest Files
-# MAGIC Download process and instrumentation diagrams. We use an md5 hash to encode the file name and ensure uniqueness.
-
-# COMMAND ----------
-
-import mlflow
 import requests
 import hashlib
-import fitz  # PyMuPDF
-from pathlib import Path
-from PIL import Image
 import io
-from src.process import tile_image_with_overlap
-
-# COMMAND ----------
-
-config = mlflow.models.ModelConfig(development_config="config.yaml").to_dict()
-
-# COMMAND ----------
-
-raw_pdf_file_path = config["raw_path"] 
-
-
-# COMMAND ----------
-
-# url = "https://open.alberta.ca/dataset/46ddba1a-7b86-4d7c-b8b6-8fe33a60fada/resource/a82b9bc3-37a9-4447-8d2f-f5b55a5c3353/download/facilitydrawings.pdf"
-# hashed_url = hashlib.md5(url.encode()).hexdigest()
-
-# raw_pdf_file_path = config["raw_path"] + hashed_url + ".pdf"
-
-# response = requests.get(url)
-# with open(raw_pdf_file_path, "wb") as file:
-#     file.write(response.content)
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC We currently use PyMuPDF for splitting the pages. The license isn't great, but there are many other options. This is the simplest for now.
-
-# COMMAND ----------
-
-from pathlib import Path
-import fitz  # PyMuPDF
-
-raw_dir   = Path(config["raw_path"])
-output_dir = Path(config["processed_path"])
-output_dir.mkdir(exist_ok=True)  # ensure base output exists
-
-# Loop over every PDF in the raw directory:
-for raw_pdf_path in raw_dir.glob("*.pdf"):
-    print(f"Processing {raw_pdf_path.name}…")
-    # Make a subfolder named after the PDF (e.g. "invoice_123.pdf" → "invoice_123")
-    pdf_stem = raw_pdf_path.stem
-    pdf_out_dir = output_dir / pdf_stem
-    pdf_out_dir.mkdir(exist_ok=True)
-
-    doc = fitz.open(raw_pdf_path)
-    for page_num in range(len(doc)):
-        page = doc.load_page(page_num)
-        pix = page.get_pixmap(dpi=200)
-        # Save as "invoice_123_page_1.jpeg", "invoice_123_page_2.jpeg", etc.
-        out_name = f"{pdf_stem}_page_{page_num+1}.jpeg"
-        pix.save(pdf_out_dir / out_name)
-
-    doc.close()
-
-
-# COMMAND ----------
-
-# doc_dir = Path(config["processed_path"])
-# doc_dir.mkdir(exist_ok=True)
-
-# doc = fitz.open(raw_pdf_file_path)
-# for page_num in range(len(doc)):
-#     page = doc.load_page(page_num)
-#     pix = page.get_pixmap(dpi=200)
-#     pix.save(doc_dir / f"page_{page_num+1}.jpeg")
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC Now let's tile each pdf image
-
-# COMMAND ----------
-
+import os
 from pathlib import Path
 from PIL import Image
 
-def tile_image_with_overlap(image_path, output_dir, overlap_percent=10):
-    img = Image.open(image_path)
-    img_name_suffix = image_path.stem
-    hash_name = image_path.parent.stem
-    width, height = img.size
+import mlflow
+from mlflow.models import ModelConfig
+import pdfplumber
+import pandas as pd
 
-    cols, rows = 4, 2  # 8 tiles: 4 columns x 2 rows
-
-    # Compute base tile size (without overlap)
-    base_tile_width = width // cols
-    base_tile_height = height // rows
-
-    # Compute overlap in pixels
-    overlap_x = int(base_tile_width * overlap_percent / 100)
-    overlap_y = int(base_tile_height * overlap_percent / 100)
-
-    output_dir = Path(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    tile_num = 1
-    for row in range(rows):
-        for col in range(cols):
-            # Calculate the starting x/y
-            left = col * (base_tile_width - overlap_x)
-            upper = row * (base_tile_height - overlap_y)
-
-            # For the last column/row, ensure we reach the image edge
-            if col == cols - 1:
-                right = width
-            else:
-                right = left + base_tile_width
-
-            if row == rows - 1:
-                lower = height
-            else:
-                lower = upper + base_tile_height
-
-            # Clamp to image boundaries
-            left = max(0, left)
-            upper = max(0, upper)
-            right = min(width, right)
-            lower = min(height, lower)
-
-            tile = img.crop((left, upper, right, lower))
-            tile_path = output_dir / hash_name / f"{img_name_suffix}_tile_{str(tile_num)}.webp"
-            tile_path.parent.mkdir(parents=True, exist_ok=True)
-            tile.save(tile_path)
-            tile_num += 1
+from src.preprocess import get_tile_positions
 
 # COMMAND ----------
 
-#test_path = Path('/Volumes/shm/pid/processed_pdfs/5a82c87214d47c8af93fb443908548ee/page_25.jpeg')
-test_path = Path('/Volumes/shm/pid/processed_pdfs/ALB/with_load_sheet/ALB-701-PID-PR-005046-003_3DD0.1/ALB-701-PID-PR-005046-003_3DD0.1_page_1.jpeg')
+config = ModelConfig(development_config='config.yaml').to_dict()
+ppconfig = config['preprocessing']
 
 # COMMAND ----------
 
-# Tile the images
-for test_path in Path(config['processed_path']).rglob("*.jpeg"):
-    tile_image_with_overlap(test_path, config["tiled_path"])
+# MAGIC %md
+# MAGIC # Page Tiling
+# MAGIC We use [pdfplumber](https://github.com/jsvine/pdfplumber) to deal with multipage pdfs, and the python image library ([PIL](https://pillow.readthedocs.io/en/stable/)) to crop them into tiles. This has the advantage of keeping a relatively consistent tile size (edges excluded) and maintaining a consistent resolution among different pdf pages.
+
+# COMMAND ----------
+
+from PIL import ImageEnhance
+
+# Single file (multipage) workflow
+pdf_file_path = Path(ppconfig['raw_path'])
+file_path_hash = hashlib.md5(str(pdf_file_path).encode()).hexdigest()
+pdf_name = pdf_file_path.stem
+
+# Hashed output dir
+output_dir = Path(ppconfig['processed_path']) / file_path_hash
+(output_dir / 'tiles').mkdir(parents=True, exist_ok=True)
+
+metadata = []
+with pdfplumber.open(pdf_file_path) as pdf:
+    for page_num, page in enumerate(pdf.pages):
+        tile_count = 1
+        page_img = page.to_image(resolution=ppconfig['dpi']).original
+
+        # convert to grayscale
+        page_img = page_img.convert('L')
+
+        # enhance contrast
+        contrast = ImageEnhance.Contrast(page_img)
+        page_img = contrast.enhance(2.0)
+
+        # apply thresholding (background suppression)
+        threshold = 128  # mid thresholding (50%)
+        page_img = page_img.point(
+            lambda x: 255 if x > threshold else 0, mode='1'
+            )
+
+        page_path = output_dir / f"{file_path_hash}_p{page_num+1}.jpg"
+        page_img.save(page_path, "JPEG")
+        
+        width, height = page_img.size
+        x_positions = get_tile_positions(
+            width, 
+            ppconfig['tile_width_px'], 
+            ppconfig['overlap_px']
+            )
+        
+        y_positions = get_tile_positions(
+            height, 
+            ppconfig['tile_height_px'], 
+            ppconfig['overlap_px']
+            )
+        
+        for upper in y_positions:
+            for left in x_positions:
+                right = left + ppconfig['tile_width_px']
+                lower = upper + ppconfig['tile_height_px']
+                tile = page_img.crop((left, upper, right, lower))
+                tile_filename = f"{file_path_hash}_p{page_num+1}_t{tile_count}.jpg"
+                tile_path = output_dir / 'tiles' / tile_filename
+                tile.save(tile_path, "JPEG")
+
+                metadata.append({
+                    'filename': pdf_name,
+                    'file_path_hash': str(file_path_hash),
+                    'file_width': width,
+                    'file_height': height,
+                    'file_dpi': ppconfig['dpi'],
+                    'page_number': page_num + 1,
+                    'page_path': str(page_path),
+                    'tile_number': tile_count,
+                    'left': left,
+                    'upper': upper,
+                    'right': right,
+                    'lower': lower,
+                    'tile_path': str(tile_path)
+                })
+
+                tile_count += 1
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Metadata
+# MAGIC When dealing with a huge number of files, it is important to keep track of metadata. We will be doing inference on both the whole pages and individual tiles, so need both logged and ready to go. We write this file into spark for future use and driving our parsing workflow.
+
+# COMMAND ----------
+
+(
+  spark.createDataFrame(pd.DataFrame(metadata))
+  .write.mode('overwrite')
+  .saveAsTable(f"{config['catalog']}.{config['schema']}.tile_info")
+)
+
+# COMMAND ----------
+
+spark.sql(f"SELECT * FROM {config['catalog']}.{config['schema']}.tile_info").display()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Load Sheets
+# MAGIC Most document vendors provide load sheets that can serve as examples for documents, few shot prompts, and evaluation. We load an example sheet made for a couple of the P&IDs in the example.

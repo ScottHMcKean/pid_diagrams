@@ -1,0 +1,40 @@
+{
+    "equipment_tags": [
+        "PI-145",
+        "PT-145",
+        "PC-133",
+        "H-100",
+        "H-150",
+        "HSE-101A",
+        "HSE-101B",
+        "ZV-200",
+        "VA-241-001",
+        "VA-241-001"
+    ],
+    "line_tags": [
+        "14\"-SU-241001-SEG",
+        "20\"-P-241013",
+        "3/4\""
+    ],
+    "incoming_streams": [
+        "241.005",
+        "241.006"
+    ],
+    "outgoing_streams": [],
+    "moc_numbers": [
+        "7702"
+    ],
+    "comments": [
+        "REFORMER",
+        "CONVECTION BANK",
+        "STEAM GENERATOR",
+        "FEED/STEAM PREHEATER II",
+        "FEED/STEAM PREHEATER SPRAY ATTEMPERATOR",
+        "COMBUSTION AIR MANIFOLD",
+        "FUEL GAS MANIFOLD",
+        "SEE P&ID NO.241.011/012",
+        "CONTROL ROOM EMERGENCY OFF",
+        "REFORMER PENTHOUSE EMERGENCY OFF",
+        "(BY INLET MANIFOLD VENDOR)"
+    ]
+}

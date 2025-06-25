@@ -1,0 +1,50 @@
+{
+    "equipment_tags": [
+        "TI-231",
+        "TI-220",
+        "TV-233",
+        "TV-219",
+        "FI-235",
+        "FI-214",
+        "FCI-235",
+        "FCI-214",
+        "ATE-018",
+        "AP-018",
+        "AE-018",
+        "TP-018"
+    ],
+    "line_tags": [
+        "4\"-WB-4413657-SAG",
+        "4\"-WB-4413655-SAG",
+        "4\"-WB-4413647-SAG",
+        "6\"-WB-4403634-SAG",
+        "18\"-P-441010-PAG",
+        "16\"-SS-441002",
+        "20\"-P-4413630"
+    ],
+    "incoming_streams": [
+        "441014",
+        "441004",
+        "441002",
+        "44112"
+    ],
+    "outgoing_streams": [
+        "44101"
+    ],
+    "moc_numbers": [
+        "441.0000.000.041.006R"
+    ],
+    "comments": [
+        "MASTER DRAWING AS BUILT INFORMATION REQUIRED",
+        "FOR SUPPLEMENTARY REVISION HISTORY OF THIS DOCUMENT, REFER TO REVISION LIST 441.0000.000.041.006R",
+        "COMBUSTION AIR",
+        "FEEDSTEAM",
+        "HP STEAM",
+        "INJECTION BOILER FEEDWATER",
+        "FROM DISTRIBUTION HEADER",
+        "SHELL CANADA ENERGY SCOTFORD UPGRADER EXPANSION 1",
+        "BECHTEL CANADA CO. JOB NO. 25183",
+        "PIPING AND INSTRUMENT DIAGRAM SCOTFORD UPGRADER EXPANSION 1",
+        "UNIT 441 - HYDROGEN MANUFACTURING UNIT TRAIN 3 CONVECTION BANK PART-I"
+    ]
+}

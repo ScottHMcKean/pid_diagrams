@@ -1,0 +1,48 @@
+{
+    "equipment_tags": [
+        "PI-257",
+        "PDI-376",
+        "PDI-145",
+        "PI-145",
+        "PTE-300B",
+        "PDALL-144",
+        "PTE-144A",
+        "PTE-149",
+        "PTE-301B",
+        "PI-301B",
+        "FI-301",
+        "H-150"
+    ],
+    "line_tags": [
+        "3/4\"-P-241051-PAB"
+    ],
+    "incoming_streams": [
+        "241.009",
+        "241.006"
+    ],
+    "outgoing_streams": [
+        "241.005",
+        "241.011",
+        "242.005"
+    ],
+    "moc_numbers": [],
+    "comments": [
+        "A-24109 REFORMER INLET MANIFOLD DESIGN TEMP: 570\u00b0C DESIGN PRESS: 4400 kPa (ga)",
+        "A-24101 REFORMER TUBES NO TUBES: 252 NO ROWS: 6",
+        "A-24110 REFORMER OUTLET MANIFOLD DESIGN TEMP: 400\u00b0C DESIGN PRESS: 3800 kPa (ga)",
+        "H-24101 STEAM REFORMER ABSORBED DUTY: 109.52 MW FIRED DUTY: 243.07 MW DESIGN TEMP: 913 \u00b0C DESIGN PRESS: 3500 kPa (ga)",
+        "H-24102 CONVECTION BANK",
+        "E-24108 HP STEAM GENERATOR DESIGN DUTY: 7.454 MW DESIGN TEMP: 400 \u00b0C DESIGN PRESS: 5600 kPa (ga) MATERIAL: INLET: CS OUTLET: CS COIL: CS",
+        "FROM PT-376",
+        "NOTE 10",
+        "MIDDLE OF THREE",
+        "NOTE 11",
+        "NOTE 12",
+        "SLOPE 1:100",
+        "(NOTE 7)",
+        "(NOTE 3) (BY INLET MANIFOLD VENDOR)",
+        "COMBUSTION AIR MANIFOLD",
+        "FUEL GAS MANIFOLD",
+        "SEE P&ID NO.241.011/012"
+    ]
+}

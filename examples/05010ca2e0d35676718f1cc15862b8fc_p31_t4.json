@@ -1,0 +1,67 @@
+{
+    "equipment_tags": [
+        "TT-241A",
+        "TT-241B",
+        "TT-241C",
+        "H-44102",
+        "E-44110",
+        "E-44119",
+        "E-44111",
+        "E-44113",
+        "TT-219",
+        "TT-238",
+        "TC-233",
+        "TT-233",
+        "TT-215",
+        "TT-219",
+        "TT-231",
+        "AE-017",
+        "AP-017",
+        "AI-018",
+        "ATE-017",
+        "AI-017",
+        "E-010",
+        "ATE-018",
+        "AP-018",
+        "AE-018",
+        "TI-220",
+        "TP-100",
+        "TP-100"
+    ],
+    "line_tags": [
+        "3/4\"-3/4\"",
+        "20\"x18\"",
+        "3/4\"-3/4\"",
+        "20\"x18\"",
+        "3/4\"-3/4\"",
+        "18\"x15\"",
+        "3/4\"-3/4\"",
+        "22\"x18\"",
+        "22\"x20\"",
+        "16\"-P-441010-PAG",
+        "16\"-SS-441002"
+    ],
+    "incoming_streams": [
+        "441362",
+        "4413692"
+    ],
+    "outgoing_streams": [
+        "441014",
+        "441004"
+    ],
+    "moc_numbers": [
+        "11457"
+    ],
+    "comments": [
+        "SIS INTERLOCK SEQUENCE NUMBER ADDED FOR QUEST.",
+        "FLUE GAS",
+        "FOR MOC 11457 PROJECT USE ONLY",
+        "WORKING COPY OF MASTER DRAWING AS BUILT INFORMATION REQUIRED",
+        "ISSUED FOR ESTIMATE 11 Jul 2011",
+        "MASTER DRAWING AS BUILT INFORMATION REQUIRED",
+        "COMBUSTION AIR",
+        "COMBUSTION AIR",
+        "FEEDSTEAM",
+        "HP STEAM"
+    ]
+}

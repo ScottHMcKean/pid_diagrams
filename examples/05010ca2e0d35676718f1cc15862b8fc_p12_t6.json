@@ -1,0 +1,54 @@
+{
+    "equipment_tags": [
+        "TIC-104",
+        "TI-120",
+        "E-203",
+        "AE-137A",
+        "AE-137B",
+        "AE-137C",
+        "AIT-137A",
+        "AIT-137B",
+        "AIT-137C",
+        "TC-102",
+        "TY-102",
+        "TI-101",
+        "FC-101",
+        "FQI-101",
+        "FI-101",
+        "FTE-101",
+        "AY-137",
+        "AC-137",
+        "I-85"
+    ],
+    "line_tags": [
+        "36\"-P-241014",
+        "18\"-P-241012",
+        "18\"-P-241011",
+        "2\"-WB-241005-SAG",
+        "12\"-WB-241004-SAG",
+        "GLY-241-001"
+    ],
+    "incoming_streams": [
+        "241.006",
+        "241.004"
+    ],
+    "outgoing_streams": [
+        "241.005",
+        "241.006",
+        "241.004"
+    ],
+    "moc_numbers": [
+        "11457"
+    ],
+    "comments": [
+        "TRANSITION DUCT",
+        "REFRACTORY LINED",
+        "PROCESS GAS TO E-24101 (BY OUTLET MANIFOLD VENDOR)",
+        "FEED/STEAM FROM E-24111",
+        "INJECTION WATER",
+        "FLUE GAS OXYGEN CONTENT TO FC-073A",
+        "FOR MOC 11457 PROJECT USE ONLY",
+        "WORKING COPY OF MASTER DRAWING ASBUILT INFORMATION REQUIRED",
+        "HYDROGEN MANUFACTURING UNIT TRAIN #1 STEAM REFORMER"
+    ]
+}

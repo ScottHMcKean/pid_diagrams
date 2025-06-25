@@ -1,0 +1,25 @@
+{
+    "equipment_tags": [
+        "US-06-1",
+        "US-02-5",
+        "US-04-5",
+        "241-851"
+    ],
+    "line_tags": [
+        "2\"-AI-440050-ULB",
+        "2\"-AI-440055-ULB",
+        "2\"-GI-440070-ULB"
+    ],
+    "incoming_streams": [
+        "440.016",
+        "440.015",
+        "440.016"
+    ],
+    "outgoing_streams": [],
+    "moc_numbers": [],
+    "comments": [
+        "INSTRUMENT AIR FROM DISTRIBUTION",
+        "UTILITY AIR FROM DISTRIBUTION",
+        "NITROGEN FROM DISTRIBUTION"
+    ]
+}
