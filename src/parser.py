@@ -6,6 +6,7 @@ from pathlib import Path
 import logging
 from abc import ABC, abstractmethod
 from typing import Dict, Any, List
+import copy
 
 from src.config import ParseConfig
 from src.preprocess import load_image_w_max_size
@@ -91,7 +92,7 @@ class ImageProcessor:
 
     def make_parse_content(self, row: Dict[str, Any], task: str) -> str:
         """Make parse context for the row"""
-        content = self.few_shot_content
+        content = copy.deepcopy(self.few_shot_content)
         if task == "tag":
             tile_image_data = self._load_image(row["tile_path"])
             content.extend(
@@ -131,6 +132,7 @@ class ImageProcessor:
                     },
                 ]
             )
+        return content
 
     def _load_image(self, image_path: str) -> str:
         """Load and encode image to base64"""
@@ -186,14 +188,19 @@ class ImageProcessor:
 
     def _parse_row(self, row: Dict[str, Any], task: str = "tag") -> Dict[str, Any]:
         """Process a single image with retry logic"""
+        # avoid side effects
+        row = copy.deepcopy(row)
 
         assert task in ["tag", "metadata"]
 
         content = self.make_parse_content(row, task)
+
         prompt = (
             self.config.tag_prompt if task == "tag" else self.config.metadata_prompt
         )
-        task_key = f"{row["file_path_hash"]}_p{row["page_number"]}_t{row["tile_number"]}_{task}"
+
+        task_key = f'{row["file_path_hash"]}_p{row["page_number"]}_t{row["tile_number"]}_{task}'
+
         label_filename = Path(row["tile_path"]).name.replace(".jpg", ".json")
 
         for attempt in range(self.config.max_retries + 1):

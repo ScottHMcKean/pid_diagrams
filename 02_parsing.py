@@ -6,7 +6,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install -U --quiet pdfplumber pydantic pyyaml
+# MAGIC %pip install -U --quiet -r requirements.txt
 # MAGIC %restart_python
 
 # COMMAND ----------
@@ -30,11 +30,20 @@ pconfig = config.parse
 # Setup LLM Client
 w = WorkspaceClient()
 
-workspace_client = WorkspaceClient()
+if _is_spark_available():
+    token = (
+        dbutils.notebook.entry_point.getDbutils()
+        .notebook()
+        .getContext()
+        .apiToken()
+        .get()
+    )
+else:
+    token = w.config.token
 
 llm_client = OpenAI(
-    api_key=workspace_client.config.token,
-    base_url=f"{workspace_client.config.host}/serving-endpoints",
+    api_key=token,
+    base_url=f"{w.config.host}/serving-endpoints",
 )
 
 # COMMAND ----------
