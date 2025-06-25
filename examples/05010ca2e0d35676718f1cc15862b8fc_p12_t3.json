@@ -1,14 +1,7 @@
 {
     "equipment_tags": [
-        "TTE-142A",
-        "TTE-142B",
-        "TTE-142C",
-        "TTE-142D",
-        "TTE-142E",
-        "TTE-142F",
-        "TTE-142G",
-        "TC-120A",
-        "TC-120B",
+        "TI-1120A",
+        "TI-1120B",
         "TI-132A",
         "TI-132B",
         "PT-133",
@@ -17,21 +10,21 @@
         "AIT-137A",
         "AIT-137B",
         "AIT-137C",
-        "TC-102"
+        "TC-120A",
+        "TC-120B",
+        "TI-120",
+        "TC-102",
+        "TTE-142A",
+        "TTE-142B",
+        "TTE-142C",
+        "TTE-142D",
+        "TTE-142E",
+        "TTE-142F",
+        "TTE-142G",
+        "E-203"
     ],
-    "line_tags": [
-        "1\"-A-24101",
-        "12\"",
-        "2\"",
-        "3/4\"",
-        "H-24101",
-        "A-24109",
-        "E-24108"
-    ],
-    "incoming_streams": [
-        "241.011",
-        "241.012"
-    ],
+    "line_tags": [],
+    "incoming_streams": [],
     "outgoing_streams": [],
     "moc_numbers": [],
     "comments": [
@@ -44,6 +37,10 @@
         "(NOTE 6)",
         "(NOTE 9)",
         "(NOTE 13)",
-        "(BY INLET MANIFOLD VENDOR)"
+        "(BY INLET MANIFOLD VENDOR)",
+        "A-24109",
+        "H-24101",
+        "A-24101",
+        "A-24109"
     ]
 }

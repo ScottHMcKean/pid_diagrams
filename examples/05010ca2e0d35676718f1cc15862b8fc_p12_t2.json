@@ -2,25 +2,26 @@
     "equipment_tags": [
         "PI-145",
         "PT-145",
+        "I-051",
+        "E-200",
         "PC-133",
         "H-100",
         "H-150",
         "HSE-101A",
         "HSE-101B",
-        "ZV-200",
+        "PC-200",
         "VA-241-001",
         "VA-241-001"
     ],
     "line_tags": [
-        "14\"-SU-241001-SEG",
-        "20\"-P-241013",
-        "3/4\""
+        "14\"-SU-241001-SAG",
+        "20\"-P-241013"
     ],
-    "incoming_streams": [
+    "incoming_streams": [],
+    "outgoing_streams": [
         "241.005",
         "241.006"
     ],
-    "outgoing_streams": [],
     "moc_numbers": [
         "7702"
     ],
@@ -30,11 +31,22 @@
         "STEAM GENERATOR",
         "FEED/STEAM PREHEATER II",
         "FEED/STEAM PREHEATER SPRAY ATTEMPERATOR",
+        "CONTROL ROOM EMERGENCY OFF",
+        "REFORMER PENTHOUSE EMERGENCY OFF",
+        "(BY INLET MANIFOLD VENDOR)",
         "COMBUSTION AIR MANIFOLD",
         "FUEL GAS MANIFOLD",
         "SEE P&ID NO.241.011/012",
-        "CONTROL ROOM EMERGENCY OFF",
-        "REFORMER PENTHOUSE EMERGENCY OFF",
-        "(BY INLET MANIFOLD VENDOR)"
+        "THE UNIT NUMBER, 241, HAS BEEN OMITTED FROM THE INSTRUMENTATION IDENTIFICATION NUMBERS FOR IMPROVED READABILITY.",
+        "CONTINUATION OF CONVECTION BANK.",
+        "REFORMER DISTRIBUTION PIPING SPECIFIED WITH THE REFORMER.",
+        "MIN. DISTANCE BETWEEN SPRAY ATTEMPERATOR AND DOWN STREAM TE REQUIRED DURING DETAILED ENGINEERING.",
+        "RESTART PERMISSIVE FOR PSA OFF GAS, FLUE GAS TEMPERATURE GREATER THAN 600°C.",
+        "CERAMIC THERMOWELL WITH INTEGRATED THERMOELEMENT.",
+        "REMOTE MOUNT TRANSMITTER.",
+        "TI- 104AVG IS AN AVERAGE OF TTE- 104A THROUGH TTE- 104F.",
+        "PDI-376 HIGH ALARM SET AT 600kPa FOR REFORMER TUBE PRO RECTION PUREST OF MOCTO FOR FU UPON RETAINENT.",
+        "VOTED OUTPUT FROM SIS.",
+        "REFORMER HIGH HIGH TRIP REQUIRES 2006 TO TRIF VOTING TO BE DONE IN SIS"
     ]
 }

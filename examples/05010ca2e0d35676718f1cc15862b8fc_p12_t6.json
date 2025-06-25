@@ -1,7 +1,10 @@
 {
     "equipment_tags": [
         "TIC-104",
+        "TTE-142G",
         "TI-120",
+        "TI-104",
+        "TT-120",
         "E-203",
         "AE-137A",
         "AE-137B",
@@ -9,33 +12,36 @@
         "AIT-137A",
         "AIT-137B",
         "AIT-137C",
+        "AI-137A",
+        "AI-137B",
+        "AI-137C",
         "TC-102",
-        "TY-102",
         "TI-101",
-        "FC-101",
+        "TV-102",
+        "FC-102",
         "FQI-101",
         "FI-101",
-        "FTE-101",
         "AY-137",
+        "FTE-101",
         "AC-137",
-        "I-85"
+        "I-85",
+        "I-051",
+        "TT-101",
+        "GLY-241-001"
     ],
     "line_tags": [
         "36\"-P-241014",
         "18\"-P-241012",
         "18\"-P-241011",
         "2\"-WB-241005-SAG",
-        "12\"-WB-241004-SAG",
-        "GLY-241-001"
+        "12\"-WB-241004-SAG"
     ],
     "incoming_streams": [
-        "241.006",
         "241.004"
     ],
     "outgoing_streams": [
-        "241.005",
         "241.006",
-        "241.004"
+        "241.005"
     ],
     "moc_numbers": [
         "11457"
@@ -47,8 +53,11 @@
         "FEED/STEAM FROM E-24111",
         "INJECTION WATER",
         "FLUE GAS OXYGEN CONTENT TO FC-073A",
+        "HYDROGEN MANUFACTURING UNIT TRAIN #1 STEAM REFORMER",
+        "BFW FROM V-24103",
         "FOR MOC 11457 PROJECT USE ONLY",
         "WORKING COPY OF MASTER DRAWING ASBUILT INFORMATION REQUIRED",
-        "HYDROGEN MANUFACTURING UNIT TRAIN #1 STEAM REFORMER"
+        "DRAWING REVISION O AFFIXED WITH P.ENG. STAMP ON 00.10.16 AND STAMPED BY: ROBERT A. MACDONALD.",
+        "FULL SIZE VERSION OF THIS DRAWING STAMPED WITH PERMIT TO PRACTICE AT REV.O"
     ]
 }

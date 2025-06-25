@@ -2,18 +2,20 @@ catalog: shm
 schema: pid
 preprocess:
   raw_path: ./assets/shell_facility_drawings.pdf
-  processed_path: /Volumes/shm/pid/processed_pdfs/
+  processed_path: ./processed_pdfs/
   dpi: 200
   tile_width_px: 4096
   tile_height_px: 2048
   overlap_px: 512
 parse:
-  output_path: /Volumes/shm/pid/parsed_pdfs/
-  fm_endpoint: databricks-claude-3-7-sonnet
+  output_path: ./parsed_pdfs/
+  example_path: ./examples/
+  fm_endpoint: databricks-claude-sonnet-4
   temperature: 0.1
   top_p: 0.1
   max_retries: 3
-  retry_delay_s: 1 
+  retry_delay_s: 1
+  num_few_shot_examples: 2
   metadata_prompt: |
     You are an expert in parsing process and instrumentation diagrams and engineering drawings. You will be given a full drawing and a zoomed in excerpt of the title block and your task is to extract metadata including:
 

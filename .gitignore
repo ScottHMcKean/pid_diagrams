@@ -1,3 +1,5 @@
+.DS_Store
+local_tables/*
 processed_pdfs/*
 raw_pdfs/*
 tile_vol_path/*

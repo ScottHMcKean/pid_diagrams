@@ -1,12 +1,12 @@
 {
     "equipment_tags": [
-        "TIE-142A",
-        "TIE-142B",
-        "TIE-142C",
-        "TIE-142D",
-        "TIE-142E",
-        "TIE-142F",
-        "TIE-142G",
+        "TTE-142A",
+        "TTE-142B",
+        "TTE-142C",
+        "TTE-142D",
+        "TTE-142E",
+        "TTE-142F",
+        "TTE-142G",
         "TI-104",
         "HS-120",
         "AE-137A",
@@ -16,7 +16,7 @@
         "AIT-137B",
         "AIT-137C",
         "TC-102",
-        "TI-120",
+        "TT-120",
         "TTE-104A",
         "TTE-104B",
         "TTE-104C",
@@ -31,33 +31,31 @@
         "TI-104F",
         "PQI-101",
         "AY-137",
+        "FQI-101",
         "FI-101",
-        "FI-101",
+        "FT-101",
         "FTE-101",
-        "AC-137"
+        "E-203",
+        "AC-137",
+        "I-001",
+        "GLY-241-001"
     ],
     "line_tags": [
-        "36\"-P-241014",
-        "1 1/2\"",
-        "3/4\"",
-        "GLV-241-001"
+        "36\"-P-241014"
     ],
-    "incoming_streams": [
-        "241.002",
+    "incoming_streams": [],
+    "outgoing_streams": [
         "241.002"
     ],
-    "outgoing_streams": [],
-    "moc_numbers": [
-        "A-24110"
-    ],
+    "moc_numbers": [],
     "comments": [
         "TRANSITION DUCT",
         "(NOTE 6)",
+        "(NOTE 9)",
         "(NOTE 5)",
         "(NOTE 13)",
-        "(NOTE 9)",
-        "(NOTE 3)",
         "FFX-058",
-        "FFX-059"
+        "FFX-059",
+        "A-24110"
     ]
 }

@@ -1,7 +1,7 @@
 {
     "equipment_tags": [
-        "PI-257",
         "PDI-376",
+        "PI-257",
         "PDI-145",
         "PI-145",
         "PTE-300B",
@@ -11,7 +11,12 @@
         "PTE-301B",
         "PI-301B",
         "FI-301",
-        "H-150"
+        "H-150",
+        "I-051",
+        "PC-133",
+        "PT-145",
+        "PI-301B",
+        "E-300"
     ],
     "line_tags": [
         "3/4\"-P-241051-PAB"
@@ -34,13 +39,13 @@
         "H-24102 CONVECTION BANK",
         "E-24108 HP STEAM GENERATOR DESIGN DUTY: 7.454 MW DESIGN TEMP: 400 \u00b0C DESIGN PRESS: 5600 kPa (ga) MATERIAL: INLET: CS OUTLET: CS COIL: CS",
         "FROM PT-376",
-        "NOTE 10",
         "MIDDLE OF THREE",
+        "NOTE 10",
         "NOTE 11",
         "NOTE 12",
-        "SLOPE 1:100",
         "(NOTE 7)",
         "(NOTE 3) (BY INLET MANIFOLD VENDOR)",
+        "SLOPE 1:100",
         "COMBUSTION AIR MANIFOLD",
         "FUEL GAS MANIFOLD",
         "SEE P&ID NO.241.011/012"
