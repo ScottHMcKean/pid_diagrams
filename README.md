@@ -4,6 +4,12 @@ This repository implements a multimodal processing pipeline for P&ID (Process & 
 
 We showed that tiles are the path forward for tag extraction. But that the model is hallucinating titles that don't exist. In order to improve our metadata capture, we are going to do two passes on the image. The first is a few-shot extraction of image metadata - titles, locations, revisions etc. The second is a tile by tile few shot extraction where we will curate samples ourselves to guide the model
 
+## Preprocessing
+
+The preprocessing only works with PDFs.
+
+## Parsing
+
 ## Evaluation
 
 To evaluate the performance of tag and stream parsing, we use precision, recall, and Jaccard Similarity for tags and streams. We use Normalized Levenshtein Distance for string similarity in each metadata field.

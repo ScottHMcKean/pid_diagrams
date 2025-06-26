@@ -22,10 +22,12 @@ from src.parser import OpenAIRequestHandler, ImageProcessor
 from src.utils import _is_spark_available
 
 # COMMAND ----------
+
 config = load_config("config.yaml")
 pconfig = config.parse
 
 # COMMAND ----------
+
 # Setup LLM Client
 w = WorkspaceClient()
 
@@ -46,17 +48,24 @@ llm_client = OpenAI(
 )
 
 # COMMAND ----------
+
 # Setup request handler and image processor
 request_handler = OpenAIRequestHandler(llm_client, pconfig)
 image_processor = ImageProcessor(request_handler, pconfig)
 
 # COMMAND ----------
+
 if _is_spark_available():
-    driver_table = spark.table(f"{config.catalog}.{config.schema}.tile_info")
+    driver_table = spark.table(f"{config.catalog}.{config.schema}.tile_info").toPandas()
 else:
     driver_table = pd.read_parquet(Path("local_tables") / "tile_info.parquet")
 
 # COMMAND ----------
+
+driver_table
+
+# COMMAND ----------
+
 # Metadata parsing (per page)
 # This query pulls the last tile from each example page
 # This section runs the metadata prompt using the entire image from each example and the last tile (which is always the lower right). The last tile should contain most title blocks due to the dimensions of the tiles and resolution.
@@ -68,12 +77,12 @@ if _is_spark_available():
         SELECT 
             *,
             ROW_NUMBER() OVER (PARTITION BY page_number ORDER BY tile_number DESC) as rn
-        FROM {config['catalog']}.{config['schema']}.tile_info
+        FROM {config.catalog}.{config.schema}.tile_info
         )
         WHERE rn = 1
-        AND page_number in (24,27,31)
+        AND page_number in (12,32)
         """
-    )
+    ).toPandas()
 else:
     pages_to_parse = (
         driver_table[driver_table["page_number"].isin([12, 32])]
@@ -84,19 +93,25 @@ else:
     )
 
 # COMMAND ----------
+
 # We are going to use a naive loop to query the examples, but will move to Ray or Spark for parallelization for the larger set of queries. The code below sends the excerpt and drawing into our model for a zero shot extraction.
 metadata_results = []
 for idx, row in pages_to_parse.iterrows():
     metadata_results.append(image_processor._parse_row(row, "metadata"))
 
-
 # COMMAND ----------
+
 # Metadata results
 # We write the results to a table for future use.
+import json
 if _is_spark_available():
+    metadata_df = pd.DataFrame(metadata_results)
+    # Use JSON strings because of mixed list and strings
+    metadata_df['parsed_metadata'] = metadata_df['parsed_metadata'].apply(json.dumps)
     (
-        spark.createDataFrame(pd.DataFrame(metadata_results))
+        spark.createDataFrame(metadata_df)
         .write.mode("overwrite")
+        .option("overwriteSchema", True)
         .saveAsTable(f"{config.catalog}.{config.schema}.metadata_results")
     )
 else:
@@ -105,11 +120,14 @@ else:
     )
 
 # COMMAND ----------
+
 # Tag parsing (per tile)
 # This section runs the tag prompt using the entire image from each example and the last tile (which is always the lower right). The last tile should contain most title blocks due to the dimensions of the tiles and resolution.
 tag_results = []
 for idx, row in driver_table[driver_table["page_number"].isin([12, 32])].iterrows():
     tag_results.append(image_processor._parse_row(row, "tag"))
+
+# COMMAND ----------
 
 if _is_spark_available():
     (
@@ -119,3 +137,11 @@ if _is_spark_available():
     )
 else:
     pd.DataFrame(tag_results).to_parquet(Path("local_tables") / "tag_results.parquet")
+
+# COMMAND ----------
+
+pd.DataFrame(metadata_results).parsed_metadata.iloc[0]
+
+# COMMAND ----------
+
+pd.DataFrame(tag_results).parsed_tag.iloc[0]

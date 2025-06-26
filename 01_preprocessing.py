@@ -11,7 +11,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install -U --quiet pdfplumber pydantic pyyaml
+# MAGIC %pip install -U --quiet -r requirements.txt
 # MAGIC %restart_python
 
 # COMMAND ----------
@@ -37,20 +37,20 @@ ppconfig = config.preprocess
 
 # COMMAND ----------
 
-# Single file (multipage) workflow
-pdf_file_path = Path(ppconfig.raw_path)
-file_path_hash = hashlib.md5(str(pdf_file_path).encode()).hexdigest()
-pdf_name = pdf_file_path.stem
+for pdf_file_path in Path(ppconfig.raw_path).glob('*.pdf'):
+    # Single file (multipage) workflow
+    file_path_hash = hashlib.md5(str(pdf_file_path).encode()).hexdigest()
+    pdf_name = pdf_file_path.stem
 
-# Hashed output dir
-output_dir = Path(ppconfig.processed_path)
+    # Hashed output dir
+    output_dir = Path(ppconfig.processed_path)
 
-# Process PDF to tiles using the refactored function
-metadata = process_pdf_to_tiles(
-    pdf_path=str(pdf_file_path),
-    output_dir=str(output_dir),
-    config=ppconfig,
-)
+    # Process PDF to tiles using the refactored function
+    metadata = process_pdf_to_tiles(
+        pdf_path=str(pdf_file_path),
+        output_dir=str(output_dir),
+        config=ppconfig,
+    )
 
 # COMMAND ----------
 
@@ -64,6 +64,7 @@ if _is_spark_available():
     (
         spark.createDataFrame(pd.DataFrame(metadata))
         .write.mode("overwrite")
+        .option('overwriteSchema', True)
         .saveAsTable(f"{config.catalog}.{config.schema}.tile_info")
     )
 else:
@@ -75,7 +76,3 @@ if _is_spark_available():
     spark.sql(f"SELECT * FROM {config.catalog}.{config.schema}.tile_info").display()
 else:
     pd.read_parquet(Path("local_tables") / "tile_info.parquet")
-
-# MAGIC %md
-# MAGIC ## Load Sheets
-# MAGIC Most document vendors provide load sheets that can serve as examples for documents, few shot prompts, and evaluation. We load an example sheet made for a couple of the P&IDs in the example.
