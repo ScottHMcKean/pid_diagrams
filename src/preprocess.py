@@ -165,6 +165,7 @@ def process_pdf_to_tiles(
                     # Store metadata
                     metadata.append(
                         {
+                            "unique_key": f"{file_hash}_p{page_num}_t{tile_count}",
                             "filename": pdf_path.stem,
                             "file_path_hash": file_hash,
                             "file_width": width,

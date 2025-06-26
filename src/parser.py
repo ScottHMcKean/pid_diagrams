@@ -199,9 +199,13 @@ class ImageProcessor:
             self.config.tag_prompt if task == "tag" else self.config.metadata_prompt
         )
 
-        task_key = f'{row["file_path_hash"]}_p{row["page_number"]}_t{row["tile_number"]}_{task}'
+        task_key = row["unique_key"]
 
-        label_filename = Path(row["tile_path"]).name.replace(".jpg", ".json")
+        label_filename = f"{task_key}.json"
+        if task == "metadata":
+            # Remove _t# from label for metadata task
+            label_filename = re.sub(r"_t\d+$", "", task_key)
+            label_filename = label_filename + ".json"
 
         for attempt in range(self.config.max_retries + 1):
             try:

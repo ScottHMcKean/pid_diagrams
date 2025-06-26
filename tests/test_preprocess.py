@@ -126,12 +126,16 @@ class TestProcessPdfToTiles:
 
         # Create temporary directory for output
         with tempfile.TemporaryDirectory() as temp_dir:
-            config = {
-                "dpi": 200,
-                "tile_width_px": 1000,
-                "tile_height_px": 500,
-                "overlap_px": 100,
-            }
+            from src.config import PreprocessConfig
+
+            config = PreprocessConfig(
+                raw_path="/tmp/test.pdf",
+                processed_path=temp_dir,
+                dpi=200,
+                tile_width_px=1000,
+                tile_height_px=512,
+                overlap_px=100,
+            )
 
             metadata = process_pdf_to_tiles(
                 pdf_path="test.pdf", output_dir=temp_dir, config=config
@@ -157,6 +161,7 @@ class TestProcessPdfToTiles:
                 "right",
                 "lower",
                 "tile_path",
+                "unique_key",
             }
             assert set(first_tile.keys()) == expected_keys
 
@@ -169,20 +174,18 @@ class TestProcessPdfToTiles:
     def test_invalid_config(self):
         """Test process_pdf_to_tiles with invalid configuration."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            config = {}  # Empty config should cause KeyError
+            from src.config import PreprocessConfig
 
-            # Mock pdfplumber to simulate a valid PDF that reaches config access
-            with patch("src.preprocess.pdfplumber.open") as mock_pdf_open:
-                mock_page = Mock()
-                mock_pdf = Mock()
-                mock_pdf.pages = [mock_page]
-                mock_pdf_open.return_value.__enter__.return_value = mock_pdf
-
-                # The KeyError should occur when trying to access config["dpi"]
-                with pytest.raises(KeyError):
-                    process_pdf_to_tiles(
-                        pdf_path="test.pdf", output_dir=temp_dir, config=config
-                    )
+            # Create invalid config - this should cause validation error during creation
+            with pytest.raises(Exception):  # Pydantic validation error
+                config = PreprocessConfig(
+                    raw_path="/tmp/test.pdf",
+                    processed_path=temp_dir,
+                    dpi=-1,  # Invalid DPI
+                    tile_width_px=1000,
+                    tile_height_px=500,
+                    overlap_px=100,
+                )
 
     @patch("src.preprocess.pdfplumber.open")
     def test_multiple_pages(self, mock_pdf_open):
@@ -201,12 +204,16 @@ class TestProcessPdfToTiles:
         mock_page2.to_image.return_value.original = mock_image2
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            config = {
-                "dpi": 150,
-                "tile_width_px": 500,
-                "tile_height_px": 250,
-                "overlap_px": 50,
-            }
+            from src.config import PreprocessConfig
+
+            config = PreprocessConfig(
+                raw_path="/tmp/multipage.pdf",
+                processed_path=temp_dir,
+                dpi=150,
+                tile_width_px=512,
+                tile_height_px=512,
+                overlap_px=50,
+            )
 
             metadata = process_pdf_to_tiles(
                 pdf_path="multipage.pdf", output_dir=temp_dir, config=config

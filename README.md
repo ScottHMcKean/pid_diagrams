@@ -2,6 +2,8 @@
 
 This repository implements a multimodal processing pipeline for P&ID (Process & Instrumentation Diagrams) using Claude Sonnet models. The pipeline includes comprehensive data preprocessing with PDF-to-image conversion and intelligent tiling, zero-shot and few-shot extraction capabilities for metadata and tag identification, and robust evaluation metrics. The codebase is organized into modular components: `src/preprocess.py` handles PDF processing and image tiling with configurable DPI and overlap settings, `src/parser.py` manages OpenAI API integration for LLM-based extraction with retry logic and JSON parsing, and `src/config.py` provides type-safe Pydantic configuration management with field validation. Key features include automated tile generation from multi-page PDFs, intelligent image preprocessing with contrast enhancement and thresholding, and structured output parsing from LLM responses.
 
+We showed that tiles are the path forward for tag extraction. But that the model is hallucinating titles that don't exist. In order to improve our metadata capture, we are going to do two passes on the image. The first is a few-shot extraction of image metadata - titles, locations, revisions etc. The second is a tile by tile few shot extraction where we will curate samples ourselves to guide the model
+
 ## Local Development
 
 If you want to run the code locally, use local_notebooks and uv for dependency management.

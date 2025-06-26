@@ -27,6 +27,7 @@ class TestOpenAIRequestHandler:
             metadata_example="test example",
             tag_prompt="test tag prompt",
             tag_example="test example",
+            example_path="/tmp/examples",
         )
 
         handler = OpenAIRequestHandler(mock_client, config)
@@ -51,6 +52,7 @@ class TestOpenAIRequestHandler:
             metadata_example="test example",
             tag_prompt="test tag prompt",
             tag_example="test example",
+            example_path="/tmp/examples",
         )
 
         handler = OpenAIRequestHandler(mock_client, config)
@@ -84,6 +86,7 @@ class TestImageProcessor:
             metadata_example="metadata example",
             tag_prompt="tag prompt",
             tag_example="tag example",
+            example_path="/tmp/examples",
         )
 
     def test_init(self):
@@ -91,6 +94,7 @@ class TestImageProcessor:
         with tempfile.TemporaryDirectory() as temp_dir:
             config = ParseConfig(
                 output_path=temp_dir,
+                example_path="/tmp/examples",
                 fm_endpoint="test-model",
                 metadata_prompt="test",
                 metadata_example="test",
@@ -109,6 +113,7 @@ class TestImageProcessor:
         with tempfile.TemporaryDirectory() as temp_dir:
             config = ParseConfig(
                 output_path=temp_dir,
+                example_path="/tmp/examples",
                 fm_endpoint="test-model",
                 metadata_prompt="test",
                 metadata_example="test",
@@ -133,6 +138,7 @@ class TestImageProcessor:
         with tempfile.TemporaryDirectory() as temp_dir:
             config = ParseConfig(
                 output_path=temp_dir,
+                example_path="/tmp/examples",
                 fm_endpoint="test-model",
                 metadata_prompt="test",
                 metadata_example="test",
@@ -153,6 +159,7 @@ class TestImageProcessor:
         with tempfile.TemporaryDirectory() as temp_dir:
             config = ParseConfig(
                 output_path=temp_dir,
+                example_path="/tmp/examples",
                 fm_endpoint="test-model",
                 metadata_prompt="test",
                 metadata_example="test",
@@ -173,6 +180,7 @@ class TestImageProcessor:
         with tempfile.TemporaryDirectory() as temp_dir:
             config = ParseConfig(
                 output_path=temp_dir,
+                example_path="/tmp/examples",
                 fm_endpoint="test-model",
                 metadata_prompt="test",
                 metadata_example="test",
@@ -193,6 +201,7 @@ class TestImageProcessor:
         with tempfile.TemporaryDirectory() as temp_dir:
             config = ParseConfig(
                 output_path=temp_dir,
+                example_path="/tmp/examples",
                 fm_endpoint="test-model",
                 metadata_prompt="test",
                 metadata_example="test",
@@ -214,6 +223,7 @@ class TestImageProcessor:
         with tempfile.TemporaryDirectory() as temp_dir:
             config = ParseConfig(
                 output_path=temp_dir,
+                example_path="/tmp/examples",
                 fm_endpoint="test-model",
                 metadata_prompt="test",
                 metadata_example="test",

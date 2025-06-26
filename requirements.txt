@@ -19,6 +19,9 @@ pyyaml>=6.0
 # Image processing and visualization
 ipython>=8.0.0
 
+# String similarity metrics
+python-Levenshtein>=0.27.1
+
 # Jupyter notebook support
 jupyter>=1.0.0
 ipykernel>=6.0.0
