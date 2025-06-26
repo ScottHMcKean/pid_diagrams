@@ -11,7 +11,6 @@
 
 # COMMAND ----------
 
-import hashlib
 from pathlib import Path
 import pandas as pd
 
@@ -89,6 +88,7 @@ else:
 metadata_results = []
 for idx, row in pages_to_parse.iterrows():
     metadata_results.append(image_processor._parse_row(row, "metadata"))
+
 
 # COMMAND ----------
 # Metadata results

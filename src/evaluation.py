@@ -25,16 +25,33 @@ def clean_pid_tags(tags_dict: dict[str, list[str]]) -> dict[str, list[str]]:
     for category, tag_list in tags_dict.items():
         cleaned_tags = []
 
+        # Ensure tag_list is actually a list and handle None cases
+        if tag_list is None:
+            cleaned_tags = []
+        elif not isinstance(tag_list, (list, tuple, set)):
+            # Handle single values by converting to list
+            tag_list = [tag_list]
+
         if category in ["equipment_tags", "line_tags"]:
             cleaned_tags = [
-                re.sub(r"\([^)]*\)", "", tag).strip() for tag in tag_list if "-" in tag
+                re.sub(r"\([^)]*\)", "", str(tag)).strip()
+                for tag in tag_list
+                if isinstance(tag, (str, int, float)) and "-" in str(tag)
             ]
         elif category in ["incoming_streams", "outgoing_streams"]:
             cleaned_tags = [
-                re.sub(r"\([^)]*\)", "", tag).strip() for tag in tag_list if "." in tag
+                re.sub(r"\([^)]*\)", "", str(tag)).strip()
+                for tag in tag_list
+                if isinstance(tag, (str, int, float)) and "." in str(tag)
             ]
         else:
-            cleaned_tags = tag_list
+            # For other categories (like locations, legacy_numbers, moc_numbers),
+            # ensure we have a clean list of strings
+            cleaned_tags = [
+                str(tag).strip()
+                for tag in tag_list
+                if tag is not None and not isinstance(tag, (list, dict))
+            ]
 
         cleaned_dict[category] = cleaned_tags
 
@@ -80,7 +97,7 @@ def normalized_levenshtein(str1: str, str2: str) -> float:
     return 1 - (levenshtein_distance(str1, str2) / max_len)
 
 
-def boolean_accuracy(val1: Any, val2: Any) -> bool:
+def boolean_accuracy(val1: Any, val2: Any) -> int:
     """Compare two boolean values for exact match.
 
     Args:
@@ -88,105 +105,61 @@ def boolean_accuracy(val1: Any, val2: Any) -> bool:
         val2: Second boolean value
 
     Returns:
-        True if values match, False otherwise
+        1 if values match, 0 otherwise
     """
     val1 = val1 if val1 is not None else False
     val2 = val2 if val2 is not None else False
-    return val1 == val2
+    return 1 if val1 == val2 else 0
 
 
-def evaluate_dataframes(
-    ground_truth_df: pd.DataFrame,
-    parsed_df: pd.DataFrame,
-    array_columns: List[str],
-    string_columns: List[str],
-    boolean_columns: List[str],
-) -> pd.DataFrame:
-    """Evaluate similarity between ground truth and parsed dataframes.
+def calculate_recall(ground_truth_list: List[Any], parsed_list: List[Any]) -> float:
+    """Calculate recall: what percentage of ground truth labels were correctly identified.
+
+    Recall = True Positives / (True Positives + False Negatives)
 
     Args:
-        ground_truth_df: DataFrame with ground truth values
-        parsed_df: DataFrame with parsed values
-        array_columns: List of column names containing arrays
-        string_columns: List of column names containing strings
-        boolean_columns: List of column names containing booleans
+        ground_truth_list: Ground truth labels
+        parsed_list: Parsed labels
 
     Returns:
-        DataFrame with similarity scores for each unique_key
+        Recall score between 0 and 1, where 1 means all ground truth labels were found
     """
-    # Merge dataframes on unique_key for comparison
-    evaluation_df = ground_truth_df.merge(
-        parsed_df, on="unique_key", suffixes=("_gt", "_parsed")
-    )
+    if not ground_truth_list:
+        return 1.0  # Perfect recall if no ground truth to find
 
-    similarities = []
+    ground_truth_set = set(ground_truth_list) if ground_truth_list else set()
+    parsed_set = set(parsed_list) if parsed_list else set()
 
-    for _, row in evaluation_df.iterrows():
-        result = {"unique_key": row["unique_key"]}
+    # True Positives: ground truth labels that were found
+    true_positives = len(ground_truth_set.intersection(parsed_set))
+    total_ground_truth = len(ground_truth_set)
 
-        # Jaccard similarity for array columns
-        for col in array_columns:
-            if col + "_gt" in row.index and col + "_parsed" in row.index:
-                gt_val = row[col + "_gt"] if row[col + "_gt"] is not None else []
-                parsed_val = (
-                    row[col + "_parsed"] if row[col + "_parsed"] is not None else []
-                )
-                result[f"{col}_jaccard"] = jaccard_similarity(gt_val, parsed_val)
-
-        # Normalized Levenshtein for string columns
-        for col in string_columns:
-            if col + "_gt" in row.index and col + "_parsed" in row.index:
-                gt_val = str(row[col + "_gt"]) if row[col + "_gt"] is not None else ""
-                parsed_val = (
-                    str(row[col + "_parsed"])
-                    if row[col + "_parsed"] is not None
-                    else ""
-                )
-                result[f"{col}_levenshtein"] = normalized_levenshtein(
-                    gt_val, parsed_val
-                )
-
-        # Boolean columns
-        for col in boolean_columns:
-            if col + "_gt" in row.index and col + "_parsed" in row.index:
-                gt_val = row[col + "_gt"]
-                parsed_val = row[col + "_parsed"]
-                result[f"{col}_boolean"] = boolean_accuracy(gt_val, parsed_val)
-
-        similarities.append(result)
-
-    return pd.DataFrame(similarities)
+    return true_positives / total_ground_truth if total_ground_truth > 0 else 1.0
 
 
-def get_evaluation_summary(similarity_df: pd.DataFrame) -> Dict[str, pd.DataFrame]:
-    """Generate summary statistics for evaluation results.
+def calculate_precision(ground_truth_list: List[Any], parsed_list: List[Any]) -> float:
+    """Calculate precision: what percentage of parsed labels were correct.
+
+    Precision = True Positives / (True Positives + False Positives)
 
     Args:
-        similarity_df: DataFrame with similarity scores
+        ground_truth_list: Ground truth labels
+        parsed_list: Parsed labels
 
     Returns:
-        Dictionary with summary statistics for each metric type
+        Precision score between 0 and 1, where 1 means all parsed labels were correct
     """
-    summary = {}
+    if not parsed_list:
+        return 1.0  # Perfect precision if nothing was parsed (no false positives)
 
-    # Jaccard similarity summary
-    jaccard_cols = [col for col in similarity_df.columns if col.endswith("_jaccard")]
-    if jaccard_cols:
-        summary["jaccard"] = similarity_df[jaccard_cols].describe()
+    ground_truth_set = set(ground_truth_list) if ground_truth_list else set()
+    parsed_set = set(parsed_list) if parsed_list else set()
 
-    # Levenshtein similarity summary
-    levenshtein_cols = [
-        col for col in similarity_df.columns if col.endswith("_levenshtein")
-    ]
-    if levenshtein_cols:
-        summary["levenshtein"] = similarity_df[levenshtein_cols].describe()
+    # True Positives: parsed labels that were in ground truth
+    true_positives = len(ground_truth_set.intersection(parsed_set))
+    total_parsed = len(parsed_set)
 
-    # Boolean accuracy summary
-    boolean_cols = [col for col in similarity_df.columns if col.endswith("_boolean")]
-    if boolean_cols:
-        summary["boolean"] = similarity_df[boolean_cols].mean().to_frame("accuracy")
-
-    return summary
+    return true_positives / total_parsed if total_parsed > 0 else 1.0
 
 
 def load_ground_truth_data(examples_path: str) -> pd.DataFrame:
@@ -255,6 +228,16 @@ def load_ground_truth_data(examples_path: str) -> pd.DataFrame:
         metadata["moc_numbers"] = list(
             set(metadata["moc_numbers"] + tags["moc_numbers"])
         )
+
+        # Create combined columns for high-level evaluation
+        equipment_tags = tags.get("equipment_tags", []) or []
+        line_tags = tags.get("line_tags", []) or []
+        tags["combined_tags"] = list(set(equipment_tags + line_tags))
+
+        incoming_streams = tags.get("incoming_streams", []) or []
+        outgoing_streams = tags.get("outgoing_streams", []) or []
+        tags["combined_streams"] = list(set(incoming_streams + outgoing_streams))
+
         ground_truth_series.append(pd.concat([metadata, tags]).to_dict())
 
     return pd.DataFrame(ground_truth_series)
@@ -310,6 +293,18 @@ def load_parsed_data(local_tables_path: str) -> pd.DataFrame:
             key: list(value_set) for key, value_set in combined_tags_for_key.items()
         }
         cleaned_combined_tags = clean_pid_tags(combined_tags_for_key)
+
+        # Create combined columns for high-level evaluation
+        equipment_tags = cleaned_combined_tags.get("equipment_tags", []) or []
+        line_tags = cleaned_combined_tags.get("line_tags", []) or []
+        cleaned_combined_tags["combined_tags"] = list(set(equipment_tags + line_tags))
+
+        incoming_streams = cleaned_combined_tags.get("incoming_streams", []) or []
+        outgoing_streams = cleaned_combined_tags.get("outgoing_streams", []) or []
+        cleaned_combined_tags["combined_streams"] = list(
+            set(incoming_streams + outgoing_streams)
+        )
+
         combined_output_tags[unique_key] = cleaned_combined_tags
 
     # Convert to DataFrame
@@ -332,3 +327,81 @@ def load_parsed_data(local_tables_path: str) -> pd.DataFrame:
     parsed_df = merged_df.drop(columns=["moc_numbers_metadata", "moc_numbers_tags"])
 
     return parsed_df
+
+
+def evaluate_parsed_vs_ground_truth(
+    ground_truth_df: pd.DataFrame,
+    parsed_df: pd.DataFrame,
+    string_columns: List[str],
+    boolean_columns: List[str],
+) -> pd.DataFrame:
+    """Evaluate similarity between ground truth and parsed dataframes with high-level metrics.
+
+    This function uses pre-combined tags and streams columns for high-level reporting.
+
+    Args:
+        ground_truth_df: DataFrame with ground truth values (must include combined_tags, combined_streams)
+        parsed_df: DataFrame with parsed values (must include combined_tags, combined_streams)
+        string_columns: List of column names containing strings
+        boolean_columns: List of column names containing booleans
+
+    Returns:
+        DataFrame with high-level similarity scores for each unique_key
+    """
+    # Merge dataframes on unique_key for comparison
+    evaluation_df = ground_truth_df.merge(
+        parsed_df, on="unique_key", suffixes=("_gt", "_parsed")
+    )
+
+    similarities = []
+
+    for _, row in evaluation_df.iterrows():
+        result = {"unique_key": row["unique_key"]}
+
+        # Combined tags Jaccard similarity (using pre-combined columns)
+        combined_tags_gt = row.get("combined_tags_gt", []) or []
+        combined_tags_parsed = row.get("combined_tags_parsed", []) or []
+        result["tags_jaccard"] = jaccard_similarity(
+            combined_tags_gt, combined_tags_parsed
+        )
+        result["tags_recall"] = calculate_recall(combined_tags_gt, combined_tags_parsed)
+        result["tags_precision"] = calculate_precision(
+            combined_tags_gt, combined_tags_parsed
+        )
+
+        # Combined streams Jaccard similarity (using pre-combined columns)
+        combined_streams_gt = row.get("combined_streams_gt", []) or []
+        combined_streams_parsed = row.get("combined_streams_parsed", []) or []
+        result["streams_jaccard"] = jaccard_similarity(
+            combined_streams_gt, combined_streams_parsed
+        )
+        result["streams_recall"] = calculate_recall(
+            combined_streams_gt, combined_streams_parsed
+        )
+        result["streams_precision"] = calculate_precision(
+            combined_streams_gt, combined_streams_parsed
+        )
+
+        # Normalized Levenshtein for string columns
+        for col in string_columns:
+            if col + "_gt" in row.index and col + "_parsed" in row.index:
+                gt_val = str(row[col + "_gt"]) if row[col + "_gt"] is not None else ""
+                parsed_val = (
+                    str(row[col + "_parsed"])
+                    if row[col + "_parsed"] is not None
+                    else ""
+                )
+                result[f"{col}_levenshtein"] = normalized_levenshtein(
+                    gt_val, parsed_val
+                )
+
+        # Boolean columns
+        for col in boolean_columns:
+            if col + "_gt" in row.index and col + "_parsed" in row.index:
+                gt_val = row[col + "_gt"]
+                parsed_val = row[col + "_parsed"]
+                result[f"{col}_boolean"] = boolean_accuracy(gt_val, parsed_val)
+
+        similarities.append(result)
+
+    return pd.DataFrame(similarities)

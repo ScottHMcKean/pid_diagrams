@@ -47,7 +47,7 @@ class TestOpenAIRequestHandler:
             output_path="/tmp",
             fm_endpoint="test-model",
             temperature=0.5,
-            top_p=0.8,
+            thinking_budget_tokens=1024,
             metadata_prompt="test metadata prompt",
             metadata_example="test example",
             tag_prompt="test tag prompt",
@@ -66,7 +66,7 @@ class TestOpenAIRequestHandler:
 
         assert call_args.kwargs["model"] == "test-model"
         assert call_args.kwargs["temperature"] == 0.5
-        assert call_args.kwargs["top_p"] == 0.8
+        assert call_args.kwargs["extra_body"]["thinking"]["budget_tokens"] == 1024
 
 
 @pytest.mark.parser

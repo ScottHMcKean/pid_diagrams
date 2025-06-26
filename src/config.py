@@ -52,7 +52,7 @@ class ParseConfig(BaseModel):
     example_path: str = Field(..., description="Path to example images")
     fm_endpoint: str = Field(..., description="Foundation model endpoint name")
     temperature: float = Field(0.1, description="Model temperature for generation")
-    top_p: float = Field(0.1, description="Top-p sampling parameter")
+    thinking_budget_tokens: int = Field(1024, description="Budget for thinking tokens")
     max_retries: int = Field(3, description="Maximum number of retry attempts")
     retry_delay_s: int = Field(1, description="Delay between retries in seconds")
     metadata_prompt: str = Field(
@@ -67,12 +67,12 @@ class ParseConfig(BaseModel):
         0, description="Number of few shot examples to use"
     )
 
-    @field_validator("temperature", "top_p")
+    @field_validator("temperature")
     @classmethod
     def validate_probabilities(cls, v: float) -> float:
         """Validate probability parameters are in valid range."""
-        if v < 0.0 or v > 1.0:
-            raise ValueError("Temperature and top_p must be between 0.0 and 1.0")
+        if v < 0.0 or v > 2.0:
+            raise ValueError("Temperature must be between 0.0 and 2.0")
         return v
 
     @field_validator("max_retries")

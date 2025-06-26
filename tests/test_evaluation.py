@@ -9,8 +9,9 @@ from src.evaluation import (
     jaccard_similarity,
     normalized_levenshtein,
     boolean_accuracy,
-    evaluate_dataframes,
-    get_evaluation_summary,
+    calculate_recall,
+    calculate_precision,
+    evaluate_parsed_vs_ground_truth,
 )
 
 
@@ -96,145 +97,188 @@ class TestBooleanAccuracy:
 
     def test_matching_values(self) -> None:
         """Test boolean accuracy with matching values."""
-        assert boolean_accuracy(True, True) is True
-        assert boolean_accuracy(False, False) is True
+        assert boolean_accuracy(True, True) == 1
+        assert boolean_accuracy(False, False) == 1
 
     def test_different_values(self) -> None:
         """Test boolean accuracy with different values."""
-        assert boolean_accuracy(True, False) is False
-        assert boolean_accuracy(False, True) is False
+        assert boolean_accuracy(True, False) == 0
+        assert boolean_accuracy(False, True) == 0
 
 
-class TestEvaluateDataframes:
-    """Test the evaluate_dataframes function."""
+class TestRecallAndPrecision:
+    """Test the calculate_recall and calculate_precision functions."""
 
-    def setup_method(self) -> None:
-        """Set up test data."""
-        self.ground_truth_df = pd.DataFrame(
+    def test_perfect_recall_and_precision(self) -> None:
+        """Test with perfect matches."""
+        ground_truth = ["A", "B", "C"]
+        parsed = ["A", "B", "C"]
+
+        assert calculate_recall(ground_truth, parsed) == 1.0
+        assert calculate_precision(ground_truth, parsed) == 1.0
+
+    def test_partial_recall_perfect_precision(self) -> None:
+        """Test when parser finds subset of ground truth."""
+        ground_truth = ["A", "B", "C", "D"]
+        parsed = ["A", "B"]  # Missing C, D
+
+        # Recall: 2 out of 4 found = 0.5
+        assert calculate_recall(ground_truth, parsed) == 0.5
+        # Precision: 2 out of 2 parsed are correct = 1.0
+        assert calculate_precision(ground_truth, parsed) == 1.0
+
+    def test_perfect_recall_partial_precision(self) -> None:
+        """Test when parser finds all ground truth plus extras."""
+        ground_truth = ["A", "B"]
+        parsed = ["A", "B", "C", "D"]  # Extra C, D
+
+        # Recall: 2 out of 2 found = 1.0
+        assert calculate_recall(ground_truth, parsed) == 1.0
+        # Precision: 2 out of 4 parsed are correct = 0.5
+        assert calculate_precision(ground_truth, parsed) == 0.5
+
+    def test_partial_recall_partial_precision(self) -> None:
+        """Test with both missed and extra items."""
+        ground_truth = ["A", "B", "C", "D"]
+        parsed = ["A", "B", "E", "F"]  # Missing C, D; Extra E, F
+
+        # Recall: 2 out of 4 found = 0.5
+        assert calculate_recall(ground_truth, parsed) == 0.5
+        # Precision: 2 out of 4 parsed are correct = 0.5
+        assert calculate_precision(ground_truth, parsed) == 0.5
+
+    def test_empty_lists(self) -> None:
+        """Test with empty lists."""
+        assert calculate_recall([], []) == 1.0
+        assert calculate_precision([], []) == 1.0
+
+        # Empty ground truth, some parsed
+        assert calculate_recall([], ["A", "B"]) == 1.0
+        assert calculate_precision([], ["A", "B"]) == 0.0
+
+        # Some ground truth, empty parsed
+        assert calculate_recall(["A", "B"], []) == 0.0
+        assert calculate_precision(["A", "B"], []) == 1.0
+
+
+def test_evaluate_parsed_vs_ground_truth():
+    """Test high-level evaluation that uses pre-combined tags and streams."""
+    from src.evaluation import evaluate_parsed_vs_ground_truth
+
+    # Create test dataframes with pre-combined columns
+    ground_truth_df = pd.DataFrame(
+        [
             {
-                "unique_key": ["test1", "test2"],
-                "array_col": [["A", "B"], ["C", "D"]],
-                "string_col": ["hello", "world"],
-                "bool_col": [True, False],
-            }
-        )
-
-        self.parsed_df = pd.DataFrame(
+                "unique_key": "test1",
+                "combined_tags": ["E-101", "P-102", "L-201", "L-202"],  # Pre-combined
+                "combined_streams": ["1.01", "2.01", "3.01", "4.01"],  # Pre-combined
+                "drawing_name": "Drawing A",
+                "has_stamp": True,
+            },
             {
-                "unique_key": ["test1", "test2"],
-                "array_col": [["A", "C"], ["C", "D", "E"]],
-                "string_col": ["hallo", "world"],
-                "bool_col": [True, True],
-            }
-        )
+                "unique_key": "test2",
+                "combined_tags": ["E-201", "L-301"],  # Pre-combined
+                "combined_streams": ["5.01", "6.01"],  # Pre-combined
+                "drawing_name": "Drawing B",
+                "has_stamp": False,
+            },
+        ]
+    )
 
-    def test_basic_evaluation(self) -> None:
-        """Test basic dataframe evaluation."""
-        result = evaluate_dataframes(
-            self.ground_truth_df,
-            self.parsed_df,
-            array_columns=["array_col"],
-            string_columns=["string_col"],
-            boolean_columns=["bool_col"],
-        )
-
-        assert len(result) == 2
-        assert "unique_key" in result.columns
-        assert "array_col_jaccard" in result.columns
-        assert "string_col_levenshtein" in result.columns
-        assert "bool_col_boolean" in result.columns
-
-    def test_jaccard_calculation(self) -> None:
-        """Test Jaccard score calculation."""
-        result = evaluate_dataframes(
-            self.ground_truth_df,
-            self.parsed_df,
-            array_columns=["array_col"],
-            string_columns=[],
-            boolean_columns=[],
-        )
-
-        # test1: ["A", "B"] vs ["A", "C"] -> Intersection: {A}, Union: {A, B, C} -> 1/3
-        assert abs(result.loc[0, "array_col_jaccard"] - 1 / 3) < 0.001
-
-
-class TestGetEvaluationSummary:
-    """Test the get_evaluation_summary function."""
-
-    def test_summary_generation(self) -> None:
-        """Test generating evaluation summary."""
-        similarity_df = pd.DataFrame(
+    parsed_df = pd.DataFrame(
+        [
             {
-                "unique_key": ["test1", "test2"],
-                "array1_jaccard": [1.0, 0.5],
-                "string1_levenshtein": [1.0, 0.9],
-                "bool1_boolean": [True, False],
-            }
-        )
-
-        result = get_evaluation_summary(similarity_df)
-
-        assert "jaccard" in result
-        assert "levenshtein" in result
-        assert "boolean" in result
-
-    def test_boolean_accuracy_calculation(self) -> None:
-        """Test boolean accuracy in summary."""
-        similarity_df = pd.DataFrame(
+                "unique_key": "test1",
+                "combined_tags": [
+                    "E-101",
+                    "P-103",
+                    "L-201",
+                ],  # Pre-combined: 2 matches out of 5 total
+                "combined_streams": [
+                    "1.01",
+                    "2.02",
+                    "3.01",
+                ],  # Pre-combined: 2 matches out of 5 total
+                "drawing_name": "Drawing A",
+                "has_stamp": True,
+            },
             {
-                "unique_key": ["test1", "test2", "test3"],
-                "bool1_boolean": [True, False, True],
-            }
-        )
+                "unique_key": "test2",
+                "combined_tags": ["E-201", "L-301"],  # Pre-combined: perfect match
+                "combined_streams": ["5.01", "6.01"],  # Pre-combined: perfect match
+                "drawing_name": "Drawing B Modified",  # Different name
+                "has_stamp": False,
+            },
+        ]
+    )
 
-        result = get_evaluation_summary(similarity_df)
-        bool_summary = result["boolean"]
+    string_columns = ["drawing_name"]
+    boolean_columns = ["has_stamp"]
 
-        # [True, False, True] -> 2/3 accuracy
-        assert abs(bool_summary.loc["bool1_boolean", "accuracy"] - 2 / 3) < 0.001
+    result_df = evaluate_parsed_vs_ground_truth(
+        ground_truth_df, parsed_df, string_columns, boolean_columns
+    )
 
+    # Check that we have the right columns
+    expected_columns = [
+        "unique_key",
+        "tags_jaccard",
+        "tags_recall",
+        "tags_precision",
+        "streams_jaccard",
+        "streams_recall",
+        "streams_precision",
+        "drawing_name_levenshtein",
+        "has_stamp_boolean",
+    ]
+    assert all(col in result_df.columns for col in expected_columns)
 
-class TestIntegration:
-    """Integration test for the complete pipeline."""
+    # Check first row calculations
+    test1_row = result_df[result_df["unique_key"] == "test1"].iloc[0]
 
-    def test_full_pipeline(self) -> None:
-        """Test the complete evaluation pipeline."""
-        ground_truth_df = pd.DataFrame(
-            {
-                "unique_key": ["test1", "test2"],
-                "equipment_tags": [["P-101", "V-201"], ["T-301"]],
-                "drawing_name": ["Flow Diagram A", "Flow Diagram B"],
-                "has_stamp": [True, False],
-            }
-        )
+    # Combined tags: GT = ["E-101", "P-102", "L-201", "L-202"], Parsed = ["E-101", "P-103", "L-201"]
+    # Intersection = ["E-101", "L-201"] = 2 items
+    # Union = ["E-101", "P-102", "L-201", "L-202", "P-103"] = 5 items
+    # Jaccard = 2/5 = 0.4
+    assert abs(test1_row["tags_jaccard"] - 0.4) < 0.01
 
-        parsed_df = pd.DataFrame(
-            {
-                "unique_key": ["test1", "test2"],
-                "equipment_tags": [["P-101", "V-202"], ["T-301", "F-401"]],
-                "drawing_name": ["Flow Diagram A", "Flow Diagram Beta"],
-                "has_stamp": [True, True],
-            }
-        )
+    # Tags Recall: 2 matches out of 4 ground truth = 0.5
+    assert abs(test1_row["tags_recall"] - 0.5) < 0.01
 
-        # Run evaluation
-        similarity_df = evaluate_dataframes(
-            ground_truth_df,
-            parsed_df,
-            array_columns=["equipment_tags"],
-            string_columns=["drawing_name"],
-            boolean_columns=["has_stamp"],
-        )
+    # Tags Precision: 2 matches out of 3 parsed = 0.667
+    assert abs(test1_row["tags_precision"] - 0.667) < 0.01
 
-        # Get summary
-        summary = get_evaluation_summary(similarity_df)
+    # Combined streams: GT = ["1.01", "2.01", "3.01", "4.01"], Parsed = ["1.01", "2.02", "3.01"]
+    # Intersection = ["1.01", "3.01"] = 2 items
+    # Union = ["1.01", "2.01", "3.01", "4.01", "2.02"] = 5 items
+    # Jaccard = 2/5 = 0.4
+    assert abs(test1_row["streams_jaccard"] - 0.4) < 0.01
 
-        # Verify results
-        assert len(similarity_df) == 2
-        assert "jaccard" in summary
-        assert "levenshtein" in summary
-        assert "boolean" in summary
+    # Streams Recall: 2 matches out of 4 ground truth = 0.5
+    assert abs(test1_row["streams_recall"] - 0.5) < 0.01
 
-        # Basic sanity checks
-        assert all(0 <= val <= 1 for val in similarity_df["equipment_tags_jaccard"])
-        assert all(0 <= val <= 1 for val in similarity_df["drawing_name_levenshtein"])
+    # Streams Precision: 2 matches out of 3 parsed = 0.667
+    assert abs(test1_row["streams_precision"] - 0.667) < 0.01
+
+    # String comparison: exact match
+    assert test1_row["drawing_name_levenshtein"] == 1.0
+
+    # Boolean comparison: exact match (returns int now)
+    assert test1_row["has_stamp_boolean"] == 1
+
+    # Check second row
+    test2_row = result_df[result_df["unique_key"] == "test2"].iloc[0]
+
+    # Perfect matches for tags and streams
+    assert test2_row["tags_jaccard"] == 1.0
+    assert test2_row["tags_recall"] == 1.0
+    assert test2_row["tags_precision"] == 1.0
+    assert test2_row["streams_jaccard"] == 1.0
+    assert test2_row["streams_recall"] == 1.0
+    assert test2_row["streams_precision"] == 1.0
+
+    # Different string
+    assert test2_row["drawing_name_levenshtein"] < 1.0
+
+    # Same boolean (returns int now)
+    assert test2_row["has_stamp_boolean"] == 1

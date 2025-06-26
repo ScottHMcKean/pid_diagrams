@@ -11,6 +11,11 @@ import copy
 from src.config import ParseConfig
 from src.preprocess import load_image_w_max_size
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+
 
 class ParsingHandler(ABC):
     """Abstract base class for different API request handlers"""
@@ -40,7 +45,12 @@ class OpenAIRequestHandler:
             ],
             model=self.config.fm_endpoint,
             temperature=self.config.temperature,
-            top_p=self.config.top_p,
+            extra_body={
+                "thinking": {
+                    "type": "enabled",
+                    "budget_tokens": self.config.thinking_budget_tokens,
+                }
+            },
         )
         return chat_completion.choices[0].message.content
 
@@ -193,13 +203,28 @@ class ImageProcessor:
 
         assert task in ["tag", "metadata"]
 
+        task_key = row["unique_key"]
+
+        # Log which document is being parsed
+        page_path = row.get("page_path", "Unknown")
+        tile_path = row.get("tile_path", "Unknown")
+        page_number = row.get("page_number", "Unknown")
+        tile_number = row.get("tile_number", "Unknown")
+
+        self.logger.info(f"Starting {task} parsing for document: {task_key}")
+        self.logger.info(f"  Page: {page_number}, Tile: {tile_number}")
+        self.logger.info(
+            f"  Page path: {Path(page_path).name if page_path != 'Unknown' else 'Unknown'}"
+        )
+        self.logger.info(
+            f"  Tile path: {Path(tile_path).name if tile_path != 'Unknown' else 'Unknown'}"
+        )
+
         content = self.make_parse_content(row, task)
 
         prompt = (
             self.config.tag_prompt if task == "tag" else self.config.metadata_prompt
         )
-
-        task_key = row["unique_key"]
 
         label_filename = f"{task_key}.json"
         if task == "metadata":
@@ -209,26 +234,35 @@ class ImageProcessor:
 
         for attempt in range(self.config.max_retries + 1):
             try:
-                self.logger.info(f"Attempt {attempt + 1} for {task_key}")
+                self.logger.info(
+                    f"Attempt {attempt + 1}/{self.config.max_retries + 1} for {task_key}"
+                )
                 raw_response = self.request_handler.make_request(prompt, content)
                 parsed_dict = self._extract_json(raw_response)
                 self._save_result(label_filename, parsed_dict)
                 row[f"parsed_{task}"] = parsed_dict
-                self.logger.info(f"Successfully processed {label_filename}")
+                self.logger.info(
+                    f"Successfully completed {task} parsing for {task_key}"
+                )
                 break
             except json.JSONDecodeError as e:
                 self.logger.warning(
-                    f"Parsing attempt {attempt + 1} failed for {task_key}"
+                    f"JSON parsing attempt {attempt + 1} failed for {task_key}: {str(e)}"
                 )
 
                 if attempt < self.config.max_retries:
+                    self.logger.info(
+                        f"Retrying in {self.config.retry_delay_s} seconds..."
+                    )
                     time.sleep(self.config.retry_delay_s)
                 else:
-                    self.logger.error(f"Max retries for {task_key} exceeded.")
+                    self.logger.error(
+                        f"Max retries exceeded for {task_key}. Saving raw response."
+                    )
                     self._save_result(label_filename, raw_response)
                     row[f"parsed_{task}"] = raw_response
             except Exception as e:
-                self.logger.error(f"Non-parsing error for {label_filename}: {e}")
+                self.logger.error(f"Non-parsing error for {task_key}: {str(e)}")
                 self._save_result(label_filename, str(e))
                 row[f"parsed_{task}"] = str(e)
                 break

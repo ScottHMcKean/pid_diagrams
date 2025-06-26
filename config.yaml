@@ -12,7 +12,7 @@ parse:
   example_path: ./examples/
   fm_endpoint: databricks-claude-3-7-sonnet
   temperature: 0.1
-  top_p: 0.1
+  thinking_budget_tokens: 2048
   max_retries: 3
   retry_delay_s: 1
   num_few_shot_examples: 2
@@ -37,7 +37,18 @@ parse:
     - Legacy numbers are drawings numbers that differ from the main drawing name in the title block
     - MOC (management of change) numbers are often in the comments or diagram area
 
+    Thought Process:
+    1. Identify where the title block is in the drawing
+    2. Extract the drawing name and title
+    3. Identify the revision history and look at the dates
+    4. Find the most recent revision and use that as the revision and date
+    5. Look around the title block and surrounding areas for organization, locations, and MOC numbers
+    6. Look for an engineering stamp which has a signature and date along with a stamp symbol and number
+    7. Reflect on the captured information. Did you find everything? Does it match the both the drawing and the zoomed in image?
+    8. Return the information in a valid JSON format.
+
     IMPORTANT: Respond with valid JSON only. Do not wrap in markdown code blocks or add any explanatory text. Start directly with { and end with }.
+
   metadata_example: |
     {
       drawing_name: MRP-250-PID-PR-001103
@@ -57,15 +68,24 @@ parse:
     - MOC (management of change) numbers are often in the comments or diagram area
     - Incoming streams are denoted by a block arrow with text pointing inside the tile. 
     - Outgoing streams are denoted by a block arrow with text pointing outside the tile.
-    - Only extract the number from the streams (e.g. 241.005)
+    - Only extract the number from the streams - it should have a dot notation (e.g. 241.005)
     - Line numbers are often directly below a line and usually have a size (e.g. 4\")
-    - Equipment numbers are often on multiple lines within a shape (square, circle, diamond) with some letter designation (PT-250)
-    - Only extract equipment numbers that have a number (e.g. not PP)
+    - Equipment numbers are often on multiple lines within a shape (square, circle, diamond) with some letter designation and dash (PT-250)
+    - Only extract equipment numbers that have a number (e.g. not 'PP')
+
+    Thought Process:
+    1. Find all the equipment tags in the drawing
+    2. Find all the line tags in the drawing
+    3. Find all the incoming and outgoing streams in the drawing
+    4. Extract any MOC numbers or comments in the drawing
+    5. Review the extracted information. Did you find everything? Does it match the both the drawing and the zoomed in image?
+    6. Look at the tags carefully - do they match the guidelines above? Make sure you aren't inventing tags that don't exist.
+    7. Return the extracted information in a valid JSON format.
 
     IMPORTANT: Respond with valid JSON only. Do not wrap in markdown code blocks or add any explanatory text. Start directly with { and end with }.
   tag_example: |
     {
-      equipment_tags: [250-LT-1610, 250-MV-1630, 250-OW-6\\"-A4A-1202, 250-PU-105B],
+      equipment_tags: [250-LT-1610, 250-MV-1630, 250-OW-6\"-A4A-1202, 250-PU-105B],
       line_tags: [14\"-SU-241001-SEG],
       incoming_streams: [240.003]
       outgoing_streams: [241.005, 241.006],

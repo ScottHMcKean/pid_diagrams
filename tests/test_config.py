@@ -56,7 +56,7 @@ class TestConfigLoading:
         assert isinstance(config, ParseConfig)
         assert config.fm_endpoint == "databricks-claude-3-7-sonnet"
         assert config.temperature == 0.1
-        assert config.top_p == 0.1
+        assert config.thinking_budget_tokens == 2048
         assert config.max_retries == 3
         assert config.retry_delay_s == 1
         assert len(config.metadata_prompt) > 0
@@ -108,12 +108,12 @@ class TestConfigValidation:
             )
 
     def test_parse_probability_validation(self):
-        """Test temperature and top_p validation."""
+        """Test temperature validation."""
         with pytest.raises(ValidationError):
             ParseConfig(
                 output_path="/tmp",
                 fm_endpoint="test-model",
-                temperature=1.5,  # Too high
+                temperature=2.1,  # Too high
                 metadata_prompt="test",
                 metadata_example="test",
                 tag_prompt="test",

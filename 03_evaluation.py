@@ -32,12 +32,10 @@ from src.evaluation import load_ground_truth_data, load_parsed_data
 ground_truth_df = load_ground_truth_data("examples")
 parsed_df = load_parsed_data("local_tables")
 
-# Verify column alignment
-print(
-    f"Column alignment: {sorted(ground_truth_df.columns) == sorted(parsed_df.columns)}"
-)
-print(f"Ground truth shape: {ground_truth_df.shape}")
-print(f"Parsed data shape: {parsed_df.shape}")
+# Assert column alignment
+assert sorted(ground_truth_df.columns) == sorted(
+    parsed_df.columns
+), "Column alignment mismatch between ground truth and parsed data"
 
 # COMMAND ----------
 
@@ -46,34 +44,18 @@ print(f"Parsed data shape: {parsed_df.shape}")
 
 # COMMAND ----------
 
-from src.evaluation import evaluate_dataframes, get_evaluation_summary
+from src.evaluation import evaluate_parsed_vs_ground_truth
 
 # Define columns to evaluate
-array_columns = [
-    "legacy_numbers",
-    "moc_numbers",
-    "equipment_tags",
-    "line_tags",
-    "incoming_streams",
-    "outgoing_streams",
-]
 string_columns = ["drawing_name", "title", "revision", "date", "organization"]
 boolean_columns = ["has_stamp"]
 
-# Calculate similarities using abstracted function
-similarity_df = evaluate_dataframes(
-    ground_truth_df, parsed_df, array_columns, string_columns, boolean_columns
+# Calculate high-level similarities for reporting
+similarity_df = evaluate_parsed_vs_ground_truth(
+    ground_truth_df, parsed_df, string_columns, boolean_columns
 )
 
-# Get summary statistics
-summary_stats = get_evaluation_summary(similarity_df)
-
-# Display summary statistics
-for metric_type, stats in summary_stats.items():
-    print(f"\n{metric_type.title()} Summary:")
-    print(stats)
-
-# COMMAND ----------
-
-# Display the detailed results
-display(similarity_df)
+# Summary statistics
+similarity_df.drop("unique_key", axis=1).agg(
+    ["mean", "max", "min", "count", "std"]
+).T.round(2)
