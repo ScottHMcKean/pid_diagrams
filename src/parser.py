@@ -238,7 +238,7 @@ class ImageProcessor:
                     f"Attempt {attempt + 1}/{self.config.max_retries + 1} for {task_key}"
                 )
                 raw_response = self.request_handler.make_request(prompt, content)
-                parsed_dict = self._extract_json(raw_response)
+                parsed_dict = self._extract_json(raw_response[-1]["text"])
                 self._save_result(label_filename, parsed_dict)
                 row[f"parsed_{task}"] = parsed_dict
                 self.logger.info(
