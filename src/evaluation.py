@@ -14,7 +14,7 @@ from src.metrics import (
     normalized_levenshtein,
     boolean_accuracy,
 )
-from src.utils import get_spark
+from src.utils import get_spark, get_page_and_tag_files
 
 
 def clean_pid_tags(tags_dict: dict[str, list[str]]) -> dict[str, list[str]]:
@@ -86,7 +86,7 @@ def load_ground_truth_load_sheet(
     return ground_truth_df
 
 
-def load_ground_truth_json(examples_path: str) -> pd.DataFrame:
+def load_ground_truth_json(config: PIDConfig) -> pd.DataFrame:
     """Load and process ground truth data from examples directory or volume.
 
     Args:
@@ -95,41 +95,28 @@ def load_ground_truth_json(examples_path: str) -> pd.DataFrame:
     Returns:
         DataFrame with ground truth data
     """
-    examples_path = Path(examples_path)
-    all_files = list(examples_path.glob("*.json"))
-    all_tag_files = list(examples_path.glob("*_t*.json"))
-    metadata_files = list(set(all_files) - set(all_tag_files))
+    page_files, tag_files = get_page_and_tag_files(config.parse.example_path)
 
     ground_truth_series = []
-    for metadata_file in metadata_files:
-        with open(metadata_file, "r") as f:
+    for page_file in page_files:
+        with open(page_file, "r") as f:
             metadata = pd.Series(json.load(f))
 
-        metadata["unique_key"] = metadata_file.stem
+        metadata["unique_key"] = page_file.stem
 
-        # Find all tag json files matching the unique key
-        tag_files = [
-            file
-            for file in all_tag_files
-            if file.stem.startswith(metadata["unique_key"])
+        page_tag_files = [
+            file for file in tag_files if file.stem.startswith(metadata["unique_key"])
         ]
 
-        # Initialize a dictionary to store combined unique values
         combined_tags = {}
-
-        # Iterate through all tag files and combine dictionaries
-        for tag_file in tag_files:
+        for tag_file in page_tag_files:
             with open(tag_file, "r") as f:
                 tag_dict = json.load(f)
-
-            # Combine dictionaries using set operations
             for key, value in tag_dict.items():
                 if isinstance(value, np.ndarray):
                     value = list(value)
-
                 if key not in combined_tags:
                     combined_tags[key] = set()
-
                 if isinstance(value, (list, tuple, set)):
                     combined_tags[key].update(value)
                 else:
@@ -144,11 +131,6 @@ def load_ground_truth_json(examples_path: str) -> pd.DataFrame:
         cleaned_combined_tags = clean_pid_tags(combined_tags)
         tags = pd.Series(cleaned_combined_tags)
 
-        # Combine moc_numbers from metadata and tags
-        metadata["moc_numbers"] = list(
-            set(metadata["moc_numbers"] + tags["moc_numbers"])
-        )
-
         # Create combined columns for high-level evaluation
         equipment_tags = tags.get("equipment_tags", []) or []
         line_tags = tags.get("line_tags", []) or []
@@ -161,6 +143,21 @@ def load_ground_truth_json(examples_path: str) -> pd.DataFrame:
         ground_truth_series.append(pd.concat([metadata, tags]).to_dict())
 
     return pd.DataFrame(ground_truth_series)
+
+
+def load_parsed_metadata(spark: DatabricksSession, config: PIDConfig) -> pd.DataFrame:
+    """Load and process parsed metadata from spark table.
+
+    Args:
+        config: PIDConfig object
+
+    Returns:
+        DataFrame with parsed metadata
+    """
+    if spark:
+        return load_parsed_metadata_spark(spark, config)
+    else:
+        return load_parsed_metadata_local(config)
 
 
 def load_parsed_metadata_spark(
@@ -177,6 +174,7 @@ def load_parsed_metadata_spark(
     output_metadata_raw = spark.table(
         f"{config.catalog}.{config.schema}.{config.parse.metadata_table_name}"
     ).toPandas()
+    output_metadata_raw["parsed_metadata"]
     output_metadata_raw["parsed_metadata"] = output_metadata_raw.parsed_metadata.apply(
         lambda x: json.loads(x)
     )
@@ -242,26 +240,19 @@ def load_parsed_tags_local(config: PIDConfig) -> pd.DataFrame:
     return output_tags
 
 
-def combine_moc_arrays(row):
-    """Combine moc_numbers arrays from metadata and tags.
+def load_parsed_tags(spark: DatabricksSession, config: PIDConfig) -> pd.DataFrame:
+    """Load and process parsed tags from spark table.
 
     Args:
-        row: Row of dataframe
+        config: PIDConfig object
 
     Returns:
-        List of combined moc_numbers
+        DataFrame with parsed tags
     """
-    # Safely get moc_numbers from metadata and tags, handling missing columns
-    meta_moc = row.get("moc_numbers_metadata", []) or []
-    tags_moc = row.get("moc_numbers_tags", []) or []
-
-    # Ensure they are lists
-    if not isinstance(meta_moc, list):
-        meta_moc = [meta_moc] if meta_moc is not None else []
-    if not isinstance(tags_moc, list):
-        tags_moc = [tags_moc] if tags_moc is not None else []
-
-    return list(set(meta_moc + tags_moc))
+    if spark:
+        return load_parsed_tags_spark(spark, config)
+    else:
+        return load_parsed_tags_local(config)
 
 
 def combine_metadata_and_tags(
@@ -281,17 +272,13 @@ def combine_metadata_and_tags(
     for unique_key in tags_df["unique_key"].unique():
         key_rows = tags_df[tags_df["unique_key"] == unique_key]
         combined_tags_for_key = {}
-
         for _, row in key_rows.iterrows():
-            tag_dict = row["parsed_tag"]
-
+            tag_dict = json.loads(row["parsed_tag"])
             for key, value in tag_dict.items():
                 if key not in combined_tags_for_key:
                     combined_tags_for_key[key] = set()
-
                 if isinstance(value, np.ndarray):
                     value = list(value)
-
                 if isinstance(value, (list, tuple, set)):
                     combined_tags_for_key[key].update(value)
                 else:
@@ -323,23 +310,6 @@ def combine_metadata_and_tags(
 
     # Merge metadata with combined tags
     parsed_df = metadata_df.merge(combined_tags_df, on="unique_key", how="left")
-
-    # Handle moc_numbers combination if both sources have them
-    if (
-        "moc_numbers" in metadata_df.columns
-        and "moc_numbers" in combined_tags_df.columns
-    ):
-        # Temporarily add suffixes for combination
-        temp_df = metadata_df.merge(
-            combined_tags_df[["unique_key", "moc_numbers"]],
-            on="unique_key",
-            how="left",
-            suffixes=("_metadata", "_tags"),
-        )
-        parsed_df["moc_numbers"] = temp_df.apply(combine_moc_arrays, axis=1)
-    elif "moc_numbers" not in parsed_df.columns:
-        # If no moc_numbers in either, create empty list
-        parsed_df["moc_numbers"] = [[] for _ in range(len(parsed_df))]
 
     return parsed_df
 

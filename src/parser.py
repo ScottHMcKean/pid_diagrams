@@ -1,5 +1,6 @@
 import base64
 import json
+import random
 import re
 import time
 from pathlib import Path
@@ -10,6 +11,7 @@ import copy
 
 from src.config import ParseConfig
 from src.preprocess import load_image_w_max_size
+from src.utils import get_page_and_tag_files
 
 # Configure logging
 logging.basicConfig(
@@ -60,68 +62,81 @@ class ImageProcessor:
         self.request_handler = request_handler
         self.config = config
         self.output_dir = Path(config.parsed_path)
-        self.logger = logging.getLogger(__name__)
-
-        self._get_few_shot_paths()
-        self._get_few_shot_content()
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
-    def _get_few_shot_paths(self) -> List[str]:
-        """Get few shot examples from the example path"""
-        self.few_shot_paths = []
-        if self.config.num_few_shot_examples > 0:
-            self.few_shot_paths = list(Path(self.config.example_path).glob("*.jpg"))[
-                : self.config.num_few_shot_examples
-            ]
+        self.logger = logging.getLogger(__name__)
 
-    def _get_few_shot_content(self) -> List[bytes]:
+        self.page_files, self.tag_files = get_page_and_tag_files(
+            self.config.example_path
+        )
+
+    def _get_few_shot_content(self, task: str) -> List[bytes]:
         """Get few shot images from the example paths"""
-        self.few_shot_content = []
-        for path in self.few_shot_paths:
+        if self.config.num_few_shot_examples == 0:
+            return []
 
-            # load label
-            with open(str(path).replace(".jpg", ".json"), "r") as f:
-                label: str = json.dumps(json.load(f), indent=4)
+        # get few shot paths
+        if task == "tag":
+            few_shot_paths = self.tag_files
+        elif task == "metadata":
+            few_shot_paths = []
+            for page_file in self.page_files:
+                matching_tag_files = [
+                    file
+                    for file in self.tag_files
+                    if file.stem.startswith(page_file.stem)
+                ]
+                # The last tag file contains the title block (lower right)
+                last_tag_file = (
+                    max(matching_tag_files, key=lambda x: int(x.stem.split("_t")[-1]))
+                    if matching_tag_files
+                    else None
+                )
+                few_shot_paths.append(last_tag_file)
 
-            # load image
-            image_data: bytes = self._load_image(str(path))
+        # limit few shot examples
+        # TODO: Replace this with VLM embedding lookups eventually
+        example_paths = random.sample(
+            few_shot_paths, min(len(few_shot_paths), self.config.num_few_shot_examples)
+        )
 
-            self.few_shot_content.append(
+        few_shot_content = []
+        for path in example_paths:
+
+            # image
+            image_data: bytes = self._load_image(str(path).replace(".json", ".jpg"))
+            few_shot_content.append(
                 {
                     "type": "image_url",
                     "image_url": {"url": f"data:image/jpeg;base64,{image_data}"},
                 }
             )
-            self.few_shot_content.append(
+
+            # label
+            with open(str(path), "r") as f:
+                label: str = json.dumps(json.load(f), indent=4)
+            few_shot_content.append(
                 {
                     "type": "text",
                     "text": label,
                 }
             )
 
-        return self.few_shot_content
+        return few_shot_content
 
     def make_parse_content(self, row: Dict[str, Any], task: str) -> str:
         """Make parse context for the row"""
-        content = copy.deepcopy(self.few_shot_content)
+        content = self._get_few_shot_content(task)
 
         # if no few shot content, use base example
-        if len(content) == 0:
+        if not content:
             self.logger.warning("No few shot content found, using base example")
-            if task == "tag":
-                content.append(
-                    {
-                        "type": "text",
-                        "text": self.config.tag_example,
-                    }
-                )
-            elif task == "metadata":
-                content.append(
-                    {
-                        "type": "text",
-                        "text": self.config.metadata_example,
-                    }
-                )
+            example_text = (
+                self.config.tag_example
+                if task == "tag"
+                else self.config.metadata_example
+            )
+            content.append({"type": "text", "text": example_text})
 
         if task == "tag":
             tile_image_data = self._load_image(row["tile_path"])
@@ -246,35 +261,56 @@ class ImageProcessor:
         for attempt in range(self.config.max_retries + 1):
             try:
                 self.logger.info(
-                    f"Attempt {attempt + 1}/{self.config.max_retries + 1} for {task_key}"
+                    f"  Attempt {attempt + 1}/{self.config.max_retries + 1} for {task_key}"
                 )
                 raw_response = self.request_handler.make_request(prompt, content)
                 parsed_dict = self._extract_json(raw_response[-1]["text"])
                 self._save_result(label_filename, parsed_dict)
                 row[f"parsed_{task}"] = parsed_dict
-                self.logger.info(
-                    f"Successfully completed {task} parsing for {task_key}"
-                )
+                self.logger.info(f"  Success")
                 break
             except json.JSONDecodeError as e:
-                self.logger.warning(
-                    f"JSON parsing attempt {attempt + 1} failed for {task_key}: {str(e)}"
-                )
-
                 if attempt < self.config.max_retries:
-                    self.logger.info(
-                        f"Retrying in {self.config.retry_delay_s} seconds..."
+                    self.logger.warning(
+                        f"  JSON parsing failed. Retrying in {self.config.retry_delay_s} seconds..."
                     )
                     time.sleep(self.config.retry_delay_s)
                 else:
                     self.logger.error(
-                        f"Max retries exceeded for {task_key}. Saving raw response."
+                        f"  Max retries exceeded for {task_key}. Saving raw response."
                     )
                     self._save_result(label_filename, raw_response)
                     row[f"parsed_{task}"] = raw_response
             except Exception as e:
-                self.logger.error(f"Non-parsing error for {task_key}: {str(e)}")
+                self.logger.error(f"  Non-parsing error for {task_key}: {str(e)}")
                 self._save_result(label_filename, str(e))
                 row[f"parsed_{task}"] = str(e)
                 break
-        return row
+        return row, raw_response
+
+
+def save_raw_responses_to_json(
+    raw_responses: list,
+    output_path: Path = Path("outputs/raw_responses.json"),
+) -> None:
+    """
+    Save raw responses to JSON file for debugging/analysis.
+
+    Args:
+        raw_responses: List of raw responses
+        output_path: Full path to the output JSON file
+    """
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    responses_data = []
+    for i, response in enumerate(raw_responses):
+        response_entry = {
+            "response_number": i + 1,
+            "raw_response": response,
+        }
+        responses_data.append(response_entry)
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(responses_data, f, indent=2, ensure_ascii=False)
+
+    print(f"Raw responses saved to: {output_path}")

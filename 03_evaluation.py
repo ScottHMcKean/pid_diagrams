@@ -25,11 +25,10 @@ from src.config import load_config
 from src.utils import get_spark
 from src.evaluation import (
     load_ground_truth_json,
-    load_parsed_metadata_local,
-    load_parsed_tags_local,
-    load_parsed_metadata_spark,
-    load_parsed_tags_spark,
+    load_parsed_metadata,
+    load_parsed_tags,
     combine_metadata_and_tags,
+    evaluate_parsed_vs_ground_truth,
 )
 
 # COMMAND ----------
@@ -38,15 +37,9 @@ spark = get_spark()
 config = load_config("config.yaml")
 
 # Load ground truth and parsed data using abstracted functions
-ground_truth_df = load_ground_truth_json(config.parse.example_path)
-
-if spark:
-    metadata_df = load_parsed_metadata_spark(spark, config)
-    tags_df = load_parsed_tags_spark(spark, config)
-else:
-    metadata_df = load_parsed_metadata_local(config)
-    tags_df = load_parsed_tags_local(config)
-
+ground_truth_df = load_ground_truth_json(config)
+metadata_df = load_parsed_metadata(spark, config)
+tags_df = load_parsed_tags(spark, config)
 parsed_df = combine_metadata_and_tags(metadata_df, tags_df)
 
 # Assert column alignment
@@ -61,18 +54,16 @@ assert sorted(ground_truth_df.columns) == sorted(
 
 # COMMAND ----------
 
-from src.evaluation import evaluate_parsed_vs_ground_truth
-
 # Define columns to evaluate
 string_columns = ["drawing_name", "title", "revision", "date", "organization"]
 boolean_columns = ["has_stamp"]
 
-# Calculate high-level similarities for reporting
-similarity_df = evaluate_parsed_vs_ground_truth(
+# Calculate metrics
+metrics_df = evaluate_parsed_vs_ground_truth(
     ground_truth_df, parsed_df, string_columns, boolean_columns
 )
 
 # Summary statistics
-similarity_df.drop("unique_key", axis=1).agg(
+metrics_df.drop("unique_key", axis=1).agg(
     ["mean", "max", "min", "count", "std"]
 ).T.round(2)

@@ -43,10 +43,11 @@ parse:
     2. Extract the drawing name and title
     3. Identify the revision history and look at the dates
     4. Find the most recent revision and use that as the revision and date
-    5. Look around the title block and surrounding areas for organization, locations, and MOC numbers
-    6. Look for an engineering stamp which has a signature and date along with a stamp symbol and number
-    7. Reflect on the captured information. Did you find everything? Does it match the both the drawing and the zoomed in image?
-    8. Return the information in a valid JSON format.
+    5. The organization is in the title block and refers to the organization that issued the drawings.
+    6. The locations should also be in the title block and refer to physical locations that the drawing refers to.
+    7. Look for an engineering stamp which has a signature and date along with a stamp symbol and number
+    8. Reflect on the captured information. Did you find everything? Does it match the both the drawing and the zoomed in image?
+    9. Return the information in a valid JSON format.
 
     IMPORTANT: Respond with valid JSON only. Do not wrap in markdown code blocks or add any explanatory text. Start directly with { and end with }.
   metadata_example: |
@@ -68,22 +69,21 @@ parse:
     - line tags
     - incoming streams
     - outgoing streams
-    - moc numbers
+    - moc (management of change) numbers
     - comments
 
     Guidelines:
-    - MOC (management of change) numbers are often in the comments or diagram area
-    - Incoming streams are denoted by a block arrow with text pointing inside the tile. 
-    - Outgoing streams are denoted by a block arrow with text pointing outside the tile.
+    - MOC numbers are often in the comments or diagram area, usually in clouded text blocks. The refer to a change to the drawing.
+    - Incoming streams are denoted by a block arrow with text pointing inside the drawing. 
+    - Outgoing streams are denoted by a block arrow with text pointing outside the drawing.
     - Only extract the number from the streams - it should have a dot notation (e.g. 241.005)
     - Line tags are often directly below a line and usually have a size (e.g. 4\")
     - Line tags must always contain a dash, an abbreviation, and a number (e.g. 14\"-P-241001-SEG)
     - Equipment tags are often on multiple lines within a shape (square, circle, diamond) with an abbreviation and a dash (PT-250)
     - Only extract equipment tags that have a dash and a number (e.g. 'PP-140' but not 'PP')
     - Comments are anything outside of the tags and streams and should be read as a list of text entries
-    - Do not use any non-ANSI special symbols
+    - Avoid non-ANSI special symbols
     - Always escape dimensional symbols (e.g \")
-    - 
 
     Thought Process:
     1. Find all the equipment tags in the drawing

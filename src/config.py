@@ -82,7 +82,7 @@ class ParseConfig(BaseModel):
     @classmethod
     def validate_max_retries(cls, v: int) -> int:
         """Validate max retries is reasonable."""
-        if v < 0 or v > 10:
+        if v <= 0 or v > 10:
             raise ValueError("Max retries must be between 0 and 10")
         return v
 
