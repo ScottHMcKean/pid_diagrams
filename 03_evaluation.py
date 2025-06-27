@@ -16,21 +16,38 @@
 # 3. Load parsing outputs
 # 4. Compare parsing outputs to ground truth labels
 
-
 # COMMAND ----------
-import json
-from pathlib import Path
-import numpy as np
+
 import pandas as pd
-from src.evaluation import clean_pid_tags
+from pathlib import Path
+
+from src.config import load_config
+from src.utils import get_spark
+from src.evaluation import (
+    load_ground_truth_json,
+    load_parsed_metadata_local,
+    load_parsed_tags_local,
+    load_parsed_metadata_spark,
+    load_parsed_tags_spark,
+    combine_metadata_and_tags,
+)
 
 # COMMAND ----------
 
-from src.evaluation import load_ground_truth_data, load_parsed_data
+spark = get_spark()
+config = load_config("config.yaml")
 
 # Load ground truth and parsed data using abstracted functions
-ground_truth_df = load_ground_truth_data("examples")
-parsed_df = load_parsed_data("local_tables")
+ground_truth_df = load_ground_truth_json(config.parse.example_path)
+
+if spark:
+    metadata_df = load_parsed_metadata_spark(spark, config)
+    tags_df = load_parsed_tags_spark(spark, config)
+else:
+    metadata_df = load_parsed_metadata_local(config)
+    tags_df = load_parsed_tags_local(config)
+
+parsed_df = combine_metadata_and_tags(metadata_df, tags_df)
 
 # Assert column alignment
 assert sorted(ground_truth_df.columns) == sorted(

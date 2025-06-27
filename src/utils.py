@@ -1,4 +1,25 @@
-def _is_spark_available() -> bool:
+from databricks.connect import DatabricksSession
+from databricks.sdk import WorkspaceClient
+
+
+def get_token(workspace_client: WorkspaceClient) -> str:
+    """
+    Get the token for the Databricks workspace.
+    """
+    try:
+        token = (
+            workspace_client.dbutils.notebook.entry_point.getDbutils()
+            .notebook()
+            .getContext()
+            .apiToken()
+            .get()
+        )
+    except:
+        token = workspace_client.config.token
+    return token
+
+
+def get_spark() -> DatabricksSession:
     """
     Check if Spark context is available.
 
@@ -6,11 +27,8 @@ def _is_spark_available() -> bool:
         True if Spark context exists, False otherwise
     """
     try:
-        from pyspark.sql import SparkSession
-
-        spark = SparkSession.getActiveSession()
-        return spark is not None
-    except ImportError:
-        return False
-    except Exception:
-        return False
+        spark = DatabricksSession.builder.serverless(True).getOrCreate()
+        return spark
+    except Exception as e:
+        print(f"Error getting Spark session: {e}")
+        return None

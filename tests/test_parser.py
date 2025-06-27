@@ -21,7 +21,10 @@ class TestOpenAIRequestHandler:
         """Test initialization of request handler."""
         mock_client = Mock()
         config = ParseConfig(
-            output_path="/tmp",
+            parsed_path="/tmp",
+            local_tables_path="/tmp/local_tables",
+            metadata_table_name="test_metadata",
+            tags_table_name="test_tags",
             fm_endpoint="test-model",
             metadata_prompt="test metadata prompt",
             metadata_example="test example",
@@ -44,7 +47,10 @@ class TestOpenAIRequestHandler:
         mock_client.chat.completions.create.return_value = mock_response
 
         config = ParseConfig(
-            output_path="/tmp",
+            parsed_path="/tmp",
+            local_tables_path="/tmp/local_tables",
+            metadata_table_name="test_metadata",
+            tags_table_name="test_tags",
             fm_endpoint="test-model",
             temperature=0.5,
             thinking_budget_tokens=1024,
@@ -78,7 +84,10 @@ class TestImageProcessor:
         """Set up test fixtures."""
         self.mock_handler = Mock()
         self.config = ParseConfig(
-            output_path="/tmp/test_output",
+            parsed_path="/tmp/test_output",
+            local_tables_path="/tmp/local_tables",
+            metadata_table_name="test_metadata",
+            tags_table_name="test_tags",
             fm_endpoint="test-model",
             max_retries=2,
             retry_delay_s=0,  # No delay in tests
@@ -93,7 +102,10 @@ class TestImageProcessor:
         """Test initialization of image processor."""
         with tempfile.TemporaryDirectory() as temp_dir:
             config = ParseConfig(
-                output_path=temp_dir,
+                parsed_path=temp_dir,
+                local_tables_path="/tmp/local_tables",
+                metadata_table_name="test_metadata",
+                tags_table_name="test_tags",
                 example_path="/tmp/examples",
                 fm_endpoint="test-model",
                 metadata_prompt="test",
@@ -112,7 +124,10 @@ class TestImageProcessor:
         """Test image loading and base64 encoding with real file."""
         with tempfile.TemporaryDirectory() as temp_dir:
             config = ParseConfig(
-                output_path=temp_dir,
+                parsed_path=temp_dir,
+                local_tables_path="/tmp/local_tables",
+                metadata_table_name="test_metadata",
+                tags_table_name="test_tags",
                 example_path="/tmp/examples",
                 fm_endpoint="test-model",
                 metadata_prompt="test",
@@ -137,7 +152,10 @@ class TestImageProcessor:
         """Test JSON extraction from valid response."""
         with tempfile.TemporaryDirectory() as temp_dir:
             config = ParseConfig(
-                output_path=temp_dir,
+                parsed_path=temp_dir,
+                local_tables_path="/tmp/local_tables",
+                metadata_table_name="test_metadata",
+                tags_table_name="test_tags",
                 example_path="/tmp/examples",
                 fm_endpoint="test-model",
                 metadata_prompt="test",
@@ -158,7 +176,10 @@ class TestImageProcessor:
         """Test JSON extraction from markdown-wrapped response."""
         with tempfile.TemporaryDirectory() as temp_dir:
             config = ParseConfig(
-                output_path=temp_dir,
+                parsed_path=temp_dir,
+                local_tables_path="/tmp/local_tables",
+                metadata_table_name="test_metadata",
+                tags_table_name="test_tags",
                 example_path="/tmp/examples",
                 fm_endpoint="test-model",
                 metadata_prompt="test",
@@ -179,7 +200,10 @@ class TestImageProcessor:
         """Test JSON extraction with quoted number fixes."""
         with tempfile.TemporaryDirectory() as temp_dir:
             config = ParseConfig(
-                output_path=temp_dir,
+                parsed_path=temp_dir,
+                local_tables_path="/tmp/local_tables",
+                metadata_table_name="test_metadata",
+                tags_table_name="test_tags",
                 example_path="/tmp/examples",
                 fm_endpoint="test-model",
                 metadata_prompt="test",
@@ -200,7 +224,10 @@ class TestImageProcessor:
         """Test JSON extraction from invalid response."""
         with tempfile.TemporaryDirectory() as temp_dir:
             config = ParseConfig(
-                output_path=temp_dir,
+                parsed_path=temp_dir,
+                local_tables_path="/tmp/local_tables",
+                metadata_table_name="test_metadata",
+                tags_table_name="test_tags",
                 example_path="/tmp/examples",
                 fm_endpoint="test-model",
                 metadata_prompt="test",
@@ -222,7 +249,10 @@ class TestImageProcessor:
         """Test saving results to file."""
         with tempfile.TemporaryDirectory() as temp_dir:
             config = ParseConfig(
-                output_path=temp_dir,
+                parsed_path=temp_dir,
+                local_tables_path="/tmp/local_tables",
+                metadata_table_name="test_metadata",
+                tags_table_name="test_tags",
                 example_path="/tmp/examples",
                 fm_endpoint="test-model",
                 metadata_prompt="test",
@@ -261,4 +291,4 @@ class TestGetParseConfigFromFile:
         assert isinstance(config, ParseConfig)
         assert config.fm_endpoint == "databricks-claude-3-7-sonnet"
         assert config.temperature == 0.1
-        assert config.max_retries == 3
+        assert config.max_retries == 2  # Updated to match config.yaml

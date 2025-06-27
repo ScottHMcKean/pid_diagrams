@@ -1,7 +1,20 @@
 import re
+import json
 from typing import Dict, List, Any, Tuple
 import pandas as pd
-from Levenshtein import distance as levenshtein_distance
+from pathlib import Path
+import numpy as np
+from databricks.connect import DatabricksSession
+
+from src.config import PIDConfig
+from src.metrics import (
+    jaccard_similarity,
+    calculate_recall,
+    calculate_precision,
+    normalized_levenshtein,
+    boolean_accuracy,
+)
+from src.utils import get_spark
 
 
 def clean_pid_tags(tags_dict: dict[str, list[str]]) -> dict[str, list[str]]:
@@ -58,112 +71,23 @@ def clean_pid_tags(tags_dict: dict[str, list[str]]) -> dict[str, list[str]]:
     return cleaned_dict
 
 
-def jaccard_similarity(set1: List[Any], set2: List[Any]) -> float:
-    """Calculate Jaccard similarity between two lists.
-
+def load_ground_truth_load_sheet(
+    spark: DatabricksSession, table_name: str
+) -> pd.DataFrame:
+    """Load and process ground truth data from spark table of a load sheet.
     Args:
-        set1: First list of items
-        set2: Second list of items
+        table_name: Name of the spark table
 
     Returns:
-        Jaccard similarity score between 0 and 1
+        DataFrame with ground truth data
     """
-    if not set1 and not set2:
-        return 1.0
-    set1 = set(set1) if set1 else set()
-    set2 = set(set2) if set2 else set()
-    intersection = len(set1.intersection(set2))
-    union = len(set1.union(set2))
-    return intersection / union if union > 0 else 0.0
+    spark = get_spark()
+    ground_truth_df = spark.table(table_name).toPandas()
+    return ground_truth_df
 
 
-def normalized_levenshtein(str1: str, str2: str) -> float:
-    """Calculate normalized Levenshtein similarity between two strings.
-
-    Args:
-        str1: First string
-        str2: Second string
-
-    Returns:
-        Normalized similarity score between 0 and 1
-    """
-    if not str1 and not str2:
-        return 1.0
-    str1 = str1 or ""
-    str2 = str2 or ""
-    max_len = max(len(str1), len(str2))
-    if max_len == 0:
-        return 1.0
-    return 1 - (levenshtein_distance(str1, str2) / max_len)
-
-
-def boolean_accuracy(val1: Any, val2: Any) -> int:
-    """Compare two boolean values for exact match.
-
-    Args:
-        val1: First boolean value
-        val2: Second boolean value
-
-    Returns:
-        1 if values match, 0 otherwise
-    """
-    val1 = val1 if val1 is not None else False
-    val2 = val2 if val2 is not None else False
-    return 1 if val1 == val2 else 0
-
-
-def calculate_recall(ground_truth_list: List[Any], parsed_list: List[Any]) -> float:
-    """Calculate recall: what percentage of ground truth labels were correctly identified.
-
-    Recall = True Positives / (True Positives + False Negatives)
-
-    Args:
-        ground_truth_list: Ground truth labels
-        parsed_list: Parsed labels
-
-    Returns:
-        Recall score between 0 and 1, where 1 means all ground truth labels were found
-    """
-    if not ground_truth_list:
-        return 1.0  # Perfect recall if no ground truth to find
-
-    ground_truth_set = set(ground_truth_list) if ground_truth_list else set()
-    parsed_set = set(parsed_list) if parsed_list else set()
-
-    # True Positives: ground truth labels that were found
-    true_positives = len(ground_truth_set.intersection(parsed_set))
-    total_ground_truth = len(ground_truth_set)
-
-    return true_positives / total_ground_truth if total_ground_truth > 0 else 1.0
-
-
-def calculate_precision(ground_truth_list: List[Any], parsed_list: List[Any]) -> float:
-    """Calculate precision: what percentage of parsed labels were correct.
-
-    Precision = True Positives / (True Positives + False Positives)
-
-    Args:
-        ground_truth_list: Ground truth labels
-        parsed_list: Parsed labels
-
-    Returns:
-        Precision score between 0 and 1, where 1 means all parsed labels were correct
-    """
-    if not parsed_list:
-        return 1.0  # Perfect precision if nothing was parsed (no false positives)
-
-    ground_truth_set = set(ground_truth_list) if ground_truth_list else set()
-    parsed_set = set(parsed_list) if parsed_list else set()
-
-    # True Positives: parsed labels that were in ground truth
-    true_positives = len(ground_truth_set.intersection(parsed_set))
-    total_parsed = len(parsed_set)
-
-    return true_positives / total_parsed if total_parsed > 0 else 1.0
-
-
-def load_ground_truth_data(examples_path: str) -> pd.DataFrame:
-    """Load and process ground truth data from examples directory.
+def load_ground_truth_json(examples_path: str) -> pd.DataFrame:
+    """Load and process ground truth data from examples directory or volume.
 
     Args:
         examples_path: Path to examples directory containing JSON files
@@ -171,10 +95,6 @@ def load_ground_truth_data(examples_path: str) -> pd.DataFrame:
     Returns:
         DataFrame with ground truth data
     """
-    from pathlib import Path
-    import json
-    import numpy as np
-
     examples_path = Path(examples_path)
     all_files = list(examples_path.glob("*.json"))
     all_tag_files = list(examples_path.glob("*_t*.json"))
@@ -243,7 +163,45 @@ def load_ground_truth_data(examples_path: str) -> pd.DataFrame:
     return pd.DataFrame(ground_truth_series)
 
 
-def load_parsed_data(local_tables_path: str) -> pd.DataFrame:
+def load_parsed_metadata_spark(
+    spark: DatabricksSession, config: PIDConfig
+) -> pd.DataFrame:
+    """Load and process parsed metadata from spark table.
+
+    Args:
+        config: PIDConfig object
+
+    Returns:
+        DataFrame with parsed metadata
+    """
+    output_metadata_raw = spark.table(
+        f"{config.catalog}.{config.schema}.{config.parse.metadata_table_name}"
+    ).toPandas()
+    output_metadata_raw["parsed_metadata"] = output_metadata_raw.parsed_metadata.apply(
+        lambda x: json.loads(x)
+    )
+    output_metadata = pd.json_normalize(output_metadata_raw.parsed_metadata)
+    output_metadata["unique_key"] = output_metadata_raw.unique_key.str[0:-3].values
+    return output_metadata
+
+
+def load_parsed_tags_spark(spark: DatabricksSession, config: PIDConfig) -> pd.DataFrame:
+    """Load and process parsed tags fromSspark.
+
+    Args:
+        config: PIDConfig object
+
+    Returns:
+        DataFrame with parsed tags
+    """
+    output_tags = spark.table(
+        f"{config.catalog}.{config.schema}.{config.parse.tags_table_name}"
+    ).toPandas()
+    output_tags["unique_key"] = output_tags.unique_key.str[0:-3].values
+    return output_tags
+
+
+def load_parsed_metadata_local(config: PIDConfig) -> pd.DataFrame:
     """Load and process parsed data from parquet files.
 
     Args:
@@ -252,25 +210,76 @@ def load_parsed_data(local_tables_path: str) -> pd.DataFrame:
     Returns:
         DataFrame with parsed data
     """
-    from pathlib import Path
-    import numpy as np
+    output = pd.read_parquet(
+        Path(config.parse.local_tables_path)
+        / f"{config.parse.metadata_table_name}.parquet"
+    )
+    try:
+        output["parsed_metadata"] = output.parsed_metadata.apply(
+            lambda x: json.loads(x)
+        )
+    except:
+        pass
 
-    local_tables_path = Path(local_tables_path)
+    metadata_df = pd.json_normalize(output.parsed_metadata)
+    metadata_df["unique_key"] = output.unique_key.str[0:-3].values
+    return metadata_df
 
-    # Load metadata
-    output_metadata = pd.read_parquet(local_tables_path / "metadata_results.parquet")
-    output_metadata_df = pd.json_normalize(output_metadata.parsed_metadata)
-    output_metadata_df["unique_key"] = output_metadata.unique_key.str[0:-3].values
 
-    # Load tags
-    output_tags = pd.read_parquet(local_tables_path / "tag_results.parquet")
+def load_parsed_tags_local(config: PIDConfig) -> pd.DataFrame:
+    """Load and process parsed tags from local parquet files.
+
+    Args:
+        config: PIDConfig object
+
+    Returns:
+        DataFrame with parsed tags
+    """
+    output_tags = pd.read_parquet(
+        Path(config.parse.local_tables_path) / f"{config.parse.tags_table_name}.parquet"
+    )
     output_tags["unique_key"] = output_tags.unique_key.str[0:-3].values
+    return output_tags
 
-    # Group by unique_key and combine tag dictionaries
-    combined_output_tags = {}
 
-    for unique_key in output_tags["unique_key"].unique():
-        key_rows = output_tags[output_tags["unique_key"] == unique_key]
+def combine_moc_arrays(row):
+    """Combine moc_numbers arrays from metadata and tags.
+
+    Args:
+        row: Row of dataframe
+
+    Returns:
+        List of combined moc_numbers
+    """
+    # Safely get moc_numbers from metadata and tags, handling missing columns
+    meta_moc = row.get("moc_numbers_metadata", []) or []
+    tags_moc = row.get("moc_numbers_tags", []) or []
+
+    # Ensure they are lists
+    if not isinstance(meta_moc, list):
+        meta_moc = [meta_moc] if meta_moc is not None else []
+    if not isinstance(tags_moc, list):
+        tags_moc = [tags_moc] if tags_moc is not None else []
+
+    return list(set(meta_moc + tags_moc))
+
+
+def combine_metadata_and_tags(
+    metadata_df: pd.DataFrame, tags_df: pd.DataFrame
+) -> pd.DataFrame:
+    """Combine metadata and tags into a single dataframe.
+
+    Args:
+        metadata_df: DataFrame with parsed metadata
+        tags_df: DataFrame with parsed tags
+
+    Returns:
+        DataFrame with combined metadata and tags
+    """
+    combined_tags = {}
+
+    for unique_key in tags_df["unique_key"].unique():
+        key_rows = tags_df[tags_df["unique_key"] == unique_key]
         combined_tags_for_key = {}
 
         for _, row in key_rows.iterrows():
@@ -305,26 +314,32 @@ def load_parsed_data(local_tables_path: str) -> pd.DataFrame:
             set(incoming_streams + outgoing_streams)
         )
 
-        combined_output_tags[unique_key] = cleaned_combined_tags
+        combined_tags[unique_key] = cleaned_combined_tags
 
     # Convert to DataFrame
-    output_tags_df = pd.DataFrame(combined_output_tags).T
-    output_tags_df.index.name = "unique_key"
-    output_tags_df = output_tags_df.reset_index()
+    combined_tags_df = pd.DataFrame(combined_tags).T
+    combined_tags_df.index.name = "unique_key"
+    combined_tags_df = combined_tags_df.reset_index()
 
-    # Merge metadata and tags
-    merged_df = output_metadata_df.merge(
-        output_tags_df, on="unique_key", how="left", suffixes=("_metadata", "_tags")
-    )
+    # Merge metadata with combined tags
+    parsed_df = metadata_df.merge(combined_tags_df, on="unique_key", how="left")
 
-    # Combine moc_numbers arrays
-    def combine_moc_arrays(row):
-        meta_moc = list(row["moc_numbers_metadata"])
-        tags_moc = list(row["moc_numbers_tags"])
-        return list(set(list(meta_moc) + list(tags_moc)))
-
-    merged_df["moc_numbers"] = merged_df.apply(combine_moc_arrays, axis=1)
-    parsed_df = merged_df.drop(columns=["moc_numbers_metadata", "moc_numbers_tags"])
+    # Handle moc_numbers combination if both sources have them
+    if (
+        "moc_numbers" in metadata_df.columns
+        and "moc_numbers" in combined_tags_df.columns
+    ):
+        # Temporarily add suffixes for combination
+        temp_df = metadata_df.merge(
+            combined_tags_df[["unique_key", "moc_numbers"]],
+            on="unique_key",
+            how="left",
+            suffixes=("_metadata", "_tags"),
+        )
+        parsed_df["moc_numbers"] = temp_df.apply(combine_moc_arrays, axis=1)
+    elif "moc_numbers" not in parsed_df.columns:
+        # If no moc_numbers in either, create empty list
+        parsed_df["moc_numbers"] = [[] for _ in range(len(parsed_df))]
 
     return parsed_df
 

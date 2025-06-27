@@ -1,19 +1,22 @@
 catalog: shm
 schema: pid
 preprocess:
-  raw_path: ./assets/shell_facility_drawings.pdf
-  processed_path: ./processed_pdfs/
+  raw_path: assets
+  processed_path: processed_pdfs
   dpi: 200
   tile_width_px: 4096
   tile_height_px: 2048
-  overlap_px: 512
+  overlap_px: 256
 parse:
-  output_path: ./parsed_pdfs/
-  example_path: ./examples/
+  example_path: examples
+  parsed_path: parsed_pdfs
+  local_tables_path: local_tables
+  metadata_table_name: metadata_results
+  tags_table_name: tag_results
   fm_endpoint: databricks-claude-3-7-sonnet
   temperature: 0.1
   thinking_budget_tokens: 2048
-  max_retries: 3
+  max_retries: 2
   retry_delay_s: 1
   num_few_shot_examples: 2
   metadata_prompt: |
@@ -26,7 +29,6 @@ parse:
     - locations
     - organization
     - legacy numbers
-    - moc numbers
     - whether there is an engineering stamp (has_stamp)
 
     Guidelines:
@@ -35,7 +37,6 @@ parse:
     - The revision is usually in the lower right corner besdie the drawing name
     - The data is often accompanies by "ISSUED FOR ..."
     - Legacy numbers are drawings numbers that differ from the main drawing name in the title block
-    - MOC (management of change) numbers are often in the comments or diagram area
 
     Thought Process:
     1. Identify where the title block is in the drawing
@@ -48,8 +49,8 @@ parse:
     8. Return the information in a valid JSON format.
 
     IMPORTANT: Respond with valid JSON only. Do not wrap in markdown code blocks or add any explanatory text. Start directly with { and end with }.
-
   metadata_example: |
+    Example output:
     {
       drawing_name: MRP-250-PID-PR-001103
       title: AREA 250 - FROTH TREATMENT 2ND STAGE SETTLER TRAIN 1 PIPING AND INSTRUMENTATION DIAGRAM
@@ -58,20 +59,31 @@ parse:
       locations: [ALB-MRP-250]
       organization: CNRL
       legacy_number: []
-      moc_numbers: [22193534]
       has_stamp: True
     }
   tag_prompt: |
-    You are an expert in parsing process and instrumentation diagrams and engineering drawings. You will be given a tile of drawing and your task is to extract the equipment tags, line numbers, incoming and outgoing stream, management of change (MOC) numbers, and any free text comments outside of these items. 
+    You are an expert in parsing process and instrumentation diagrams and engineering drawings. You will be given a tile of drawing and your task is to extract the following
+
+    - equipment tags
+    - line tags
+    - incoming streams
+    - outgoing streams
+    - moc numbers
+    - comments
 
     Guidelines:
     - MOC (management of change) numbers are often in the comments or diagram area
     - Incoming streams are denoted by a block arrow with text pointing inside the tile. 
     - Outgoing streams are denoted by a block arrow with text pointing outside the tile.
     - Only extract the number from the streams - it should have a dot notation (e.g. 241.005)
-    - Line numbers are often directly below a line and usually have a size (e.g. 4\")
-    - Equipment numbers are often on multiple lines within a shape (square, circle, diamond) with some letter designation and dash (PT-250)
-    - Only extract equipment numbers that have a number (e.g. not 'PP')
+    - Line tags are often directly below a line and usually have a size (e.g. 4\")
+    - Line tags must always contain a dash, an abbreviation, and a number (e.g. 14\"-P-241001-SEG)
+    - Equipment tags are often on multiple lines within a shape (square, circle, diamond) with an abbreviation and a dash (PT-250)
+    - Only extract equipment tags that have a dash and a number (e.g. 'PP-140' but not 'PP')
+    - Comments are anything outside of the tags and streams and should be read as a list of text entries
+    - Do not use any non-ANSI special symbols
+    - Always escape dimensional symbols (e.g \")
+    - 
 
     Thought Process:
     1. Find all the equipment tags in the drawing
@@ -84,6 +96,7 @@ parse:
 
     IMPORTANT: Respond with valid JSON only. Do not wrap in markdown code blocks or add any explanatory text. Start directly with { and end with }.
   tag_example: |
+    Example output:
     {
       equipment_tags: [250-LT-1610, 250-MV-1630, 250-OW-6\"-A4A-1202, 250-PU-105B],
       line_tags: [14\"-SU-241001-SEG],

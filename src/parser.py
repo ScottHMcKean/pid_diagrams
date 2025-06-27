@@ -59,7 +59,7 @@ class ImageProcessor:
     def __init__(self, request_handler: OpenAIRequestHandler, config: ParseConfig):
         self.request_handler = request_handler
         self.config = config
-        self.output_dir = Path(config.output_path)
+        self.output_dir = Path(config.parsed_path)
         self.logger = logging.getLogger(__name__)
 
         self._get_few_shot_paths()
@@ -98,11 +98,31 @@ class ImageProcessor:
                     "text": label,
                 }
             )
+
         return self.few_shot_content
 
     def make_parse_content(self, row: Dict[str, Any], task: str) -> str:
         """Make parse context for the row"""
         content = copy.deepcopy(self.few_shot_content)
+
+        # if no few shot content, use base example
+        if len(content) == 0:
+            self.logger.warning("No few shot content found, using base example")
+            if task == "tag":
+                content.append(
+                    {
+                        "type": "text",
+                        "text": self.config.tag_example,
+                    }
+                )
+            elif task == "metadata":
+                content.append(
+                    {
+                        "type": "text",
+                        "text": self.config.metadata_example,
+                    }
+                )
+
         if task == "tag":
             tile_image_data = self._load_image(row["tile_path"])
             content.extend(
@@ -205,20 +225,11 @@ class ImageProcessor:
 
         task_key = row["unique_key"]
 
-        # Log which document is being parsed
-        page_path = row.get("page_path", "Unknown")
-        tile_path = row.get("tile_path", "Unknown")
         page_number = row.get("page_number", "Unknown")
         tile_number = row.get("tile_number", "Unknown")
 
         self.logger.info(f"Starting {task} parsing for document: {task_key}")
         self.logger.info(f"  Page: {page_number}, Tile: {tile_number}")
-        self.logger.info(
-            f"  Page path: {Path(page_path).name if page_path != 'Unknown' else 'Unknown'}"
-        )
-        self.logger.info(
-            f"  Tile path: {Path(tile_path).name if tile_path != 'Unknown' else 'Unknown'}"
-        )
 
         content = self.make_parse_content(row, task)
 

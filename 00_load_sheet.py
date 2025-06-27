@@ -1,12 +1,8 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # 1 - Preprocessing
+# MAGIC # 0 - Load Sheet
 # MAGIC
-# MAGIC This notebook preprocesses the PDFs, including:
-# MAGIC - converting single or multi page pdfs to image files
-# MAGIC - hashing the input and gathering metadata
-# MAGIC - making a driver table for the workflow
-# MAGIC
+# MAGIC This notebook loads a load sheet from a spark table and saves it to a parquet file.
 # MAGIC This notebook works with serverless.
 
 # COMMAND ----------
@@ -70,3 +66,10 @@ if spark:
     )
 else:
     pd.DataFrame(metadata).to_parquet(Path("local_tables") / "tile_info.parquet")
+
+# COMMAND ----------
+
+if spark:
+    spark.sql(f"SELECT * FROM {config.catalog}.{config.schema}.tile_info").display()
+else:
+    pd.read_parquet(Path("local_tables") / "tile_info.parquet")

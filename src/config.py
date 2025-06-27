@@ -48,8 +48,11 @@ class PreprocessConfig(BaseModel):
 class ParseConfig(BaseModel):
     """Configuration for parsing pipeline."""
 
-    output_path: str = Field(..., description="Output directory for parsed results")
+    parsed_path: str = Field(..., description="Output directory for parsed results")
     example_path: str = Field(..., description="Path to example images")
+    local_tables_path: str = Field(..., description="Path to local tables")
+    metadata_table_name: str = Field(..., description="Name of metadata results table")
+    tags_table_name: str = Field(..., description="Name of tags results table")
     fm_endpoint: str = Field(..., description="Foundation model endpoint name")
     temperature: float = Field(0.1, description="Model temperature for generation")
     thinking_budget_tokens: int = Field(1024, description="Budget for thinking tokens")

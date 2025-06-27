@@ -37,11 +37,11 @@ class TestConfigLoading:
         config = get_preprocessing_config("config.yaml")
 
         assert isinstance(config, PreprocessConfig)
-        assert config.raw_path == "./assets/shell_facility_drawings.pdf"
+        assert config.raw_path == "assets"
         assert config.dpi == 200
         assert config.tile_width_px == 4096
         assert config.tile_height_px == 2048
-        assert config.overlap_px == 512
+        assert config.overlap_px == 256
 
         # Test model_dump works
         config_dict = config.model_dump()
@@ -57,7 +57,7 @@ class TestConfigLoading:
         assert config.fm_endpoint == "databricks-claude-3-7-sonnet"
         assert config.temperature == 0.1
         assert config.thinking_budget_tokens == 2048
-        assert config.max_retries == 3
+        assert config.max_retries == 2
         assert config.retry_delay_s == 1
         assert len(config.metadata_prompt) > 0
         assert len(config.tag_prompt) > 0
@@ -111,7 +111,11 @@ class TestConfigValidation:
         """Test temperature validation."""
         with pytest.raises(ValidationError):
             ParseConfig(
-                output_path="/tmp",
+                parsed_path="/tmp",
+                local_tables_path="/tmp/local_tables",
+                metadata_table_name="test_metadata",
+                tags_table_name="test_tags",
+                example_path="/tmp/examples",
                 fm_endpoint="test-model",
                 temperature=2.1,  # Too high
                 metadata_prompt="test",
@@ -124,7 +128,11 @@ class TestConfigValidation:
         """Test retry configuration validation."""
         with pytest.raises(ValidationError):
             ParseConfig(
-                output_path="/tmp",
+                parsed_path="/tmp",
+                local_tables_path="/tmp/local_tables",
+                metadata_table_name="test_metadata",
+                tags_table_name="test_tags",
+                example_path="/tmp/examples",
                 fm_endpoint="test-model",
                 max_retries=15,  # Too high
                 metadata_prompt="test",

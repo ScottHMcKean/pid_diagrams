@@ -4,6 +4,19 @@ This repository implements a multimodal processing pipeline for P&ID (Process & 
 
 We showed that tiles are the path forward for tag extraction. But that the model is hallucinating titles that don't exist. In order to improve our metadata capture, we are going to do two passes on the image. The first is a few-shot extraction of image metadata - titles, locations, revisions etc. The second is a tile by tile few shot extraction where we will curate samples ourselves to guide the model
 
+## Environment Setup
+
+We are using Databricks Connect with serverless in this repo. We have programmed everything to work with [Serverless Version 3](https://docs.databricks.com/en/serverless/serverless-versions/serverless-version-3.html), which means: python 3.12.3 and databricks-connect 16.3.2. 
+
+We are using uv for dependency management. In order to install the dependencies, run:
+
+```bash
+uv venv --python=3.12.3
+source .venv/bin/activate
+uv pip install . # base dependencies
+uv pip install '.[dev]' # development
+```
+
 ## Preprocessing
 
 The preprocessing only works with PDFs.

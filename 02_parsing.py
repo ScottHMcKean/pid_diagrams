@@ -9,20 +9,23 @@
 # MAGIC %pip install -U --quiet -r requirements.txt
 # MAGIC %restart_python
 
+
 # COMMAND ----------
 
 from pathlib import Path
 import pandas as pd
+import json
 
 from openai import OpenAI
 from databricks.sdk import WorkspaceClient
 
 from src.config import load_config
 from src.parser import OpenAIRequestHandler, ImageProcessor
-from src.utils import _is_spark_available
+from src.utils import get_spark, get_token
 
 # COMMAND ----------
 
+spark = get_spark()
 config = load_config("config.yaml")
 pconfig = config.parse
 
@@ -30,17 +33,7 @@ pconfig = config.parse
 
 # Setup LLM Client
 w = WorkspaceClient()
-
-if _is_spark_available():
-    token = (
-        dbutils.notebook.entry_point.getDbutils()
-        .notebook()
-        .getContext()
-        .apiToken()
-        .get()
-    )
-else:
-    token = w.config.token
+token = get_token(w)
 
 llm_client = OpenAI(
     api_key=token,
@@ -55,21 +48,16 @@ image_processor = ImageProcessor(request_handler, pconfig)
 
 # COMMAND ----------
 
-if _is_spark_available():
-    driver_table = spark.table(f"{config.catalog}.{config.schema}.tile_info").toPandas()
-else:
-    driver_table = pd.read_parquet(Path("local_tables") / "tile_info.parquet")
-
-# COMMAND ----------
-
-driver_table
-
-# COMMAND ----------
-
 # Metadata parsing (per page)
 # This query pulls the last tile from each example page
 # This section runs the metadata prompt using the entire image from each example and the last tile (which is always the lower right). The last tile should contain most title blocks due to the dimensions of the tiles and resolution.
-if _is_spark_available():
+
+if spark:
+    tile_info_df = spark.table(f"{config.catalog}.{config.schema}.tile_info").toPandas()
+else:
+    tile_info_df = pd.read_parquet(Path("local_tables") / "tile_info.parquet")
+
+if spark:
     pages_to_parse = spark.sql(
         f"""
         SELECT *
@@ -84,8 +72,9 @@ if _is_spark_available():
         """
     ).toPandas()
 else:
+    tile_info_df = pd.read_parquet(Path("local_tables") / "tile_info.parquet")
     pages_to_parse = (
-        driver_table[driver_table["page_number"].isin([12, 32])]
+        tile_info_df[tile_info_df["page_number"].isin([12, 32])]
         .sort_values(["page_number", "tile_number"], ascending=[True, False])
         .groupby("page_number")
         .first()
@@ -103,11 +92,10 @@ for idx, row in pages_to_parse.iterrows():
 
 # Metadata results
 # We write the results to a table for future use.
-import json
-if _is_spark_available():
-    metadata_df = pd.DataFrame(metadata_results)
+metadata_df = pd.DataFrame(metadata_results)
+if spark:
     # Use JSON strings because of mixed list and strings
-    metadata_df['parsed_metadata'] = metadata_df['parsed_metadata'].apply(json.dumps)
+    metadata_df["parsed_metadata"] = metadata_df["parsed_metadata"].apply(json.dumps)
     (
         spark.createDataFrame(metadata_df)
         .write.mode("overwrite")
@@ -115,33 +103,24 @@ if _is_spark_available():
         .saveAsTable(f"{config.catalog}.{config.schema}.metadata_results")
     )
 else:
-    pd.DataFrame(metadata_results).to_parquet(
-        Path("local_tables") / "metadata_results.parquet"
-    )
+    metadata_df.to_parquet(Path("local_tables") / "metadata_results.parquet")
 
 # COMMAND ----------
 
 # Tag parsing (per tile)
 # This section runs the tag prompt using the entire image from each example and the last tile (which is always the lower right). The last tile should contain most title blocks due to the dimensions of the tiles and resolution.
 tag_results = []
-for idx, row in driver_table[driver_table["page_number"].isin([12, 32])].iterrows():
+for idx, row in tile_info_df[tile_info_df["page_number"].isin([12])].iterrows():
     tag_results.append(image_processor._parse_row(row, "tag"))
 
 # COMMAND ----------
 
-if _is_spark_available():
+if spark:
     (
         spark.createDataFrame(pd.DataFrame(tag_results))
         .write.mode("overwrite")
+        .option("overwriteSchema", True)
         .saveAsTable(f"{config.catalog}.{config.schema}.tag_results")
     )
 else:
     pd.DataFrame(tag_results).to_parquet(Path("local_tables") / "tag_results.parquet")
-
-# COMMAND ----------
-
-pd.DataFrame(metadata_results).parsed_metadata.iloc[0]
-
-# COMMAND ----------
-
-pd.DataFrame(tag_results).parsed_tag.iloc[0]
