@@ -37,6 +37,21 @@ parse:
     - The revision is usually in the lower right corner besdie the drawing name
     - The data is often accompanies by "ISSUED FOR ..."
     - Legacy numbers are drawings numbers that differ from the main drawing name in the title block
+    - Organization is meant to be an abbreviation of an engineering company that made the drawings, here are some common ones:
+    'RAPR': 
+    'SCAN': 
+    'CNRL': Canadian Natural Resources Limited
+    'AMEC': AMEC Engineering
+    'MRCCA':
+    'MRC':
+    'FLUOR': Fluor Engineering
+    'JACOBS': Jacobs Engineering
+    'REDLINE':
+    'FRAN': 
+    'ATCO': ATCO Limited
+    'TET': Tetratech
+    'WOPAR': Worley Parsons
+    'COLT': Colt Engineering
 
     Thought Process:
     1. Identify where the title block is in the drawing

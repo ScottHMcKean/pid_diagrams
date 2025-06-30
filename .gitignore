@@ -1,3 +1,5 @@
+notebooks/alb_load_sheet.py
+
 .DS_Store
 local_tables/*
 parsed_pdfs/*
