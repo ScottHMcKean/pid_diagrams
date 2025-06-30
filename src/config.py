@@ -18,6 +18,7 @@ class PreprocessConfig(BaseModel):
     dpi: int = Field(200, description="DPI for PDF to image conversion")
     tile_width_px: int = Field(4096, description="Width of tiles in pixels")
     tile_height_px: int = Field(2048, description="Height of tiles in pixels")
+    tile_table_name: str = Field(..., description="Name of tile metadata table")
     overlap_px: int = Field(512, description="Overlap between tiles in pixels")
 
     @field_validator("dpi")

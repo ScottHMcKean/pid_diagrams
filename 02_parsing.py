@@ -2,13 +2,24 @@
 # MAGIC %md
 # MAGIC # 2 - Parsing
 # MAGIC
-# MAGIC This notebook uses the preprocessed images to do zero and few shot parsing of the P&ID diagrams. This notebook has been tested on serverless.
+# MAGIC This notebook uses the preprocessed images to do zero and few shot parsing of the P&ID diagrams. This notebook has been tested on serverless v3.
 
 # COMMAND ----------
 
-# MAGIC %pip install -U --quiet -r requirements.txt
+# MAGIC %pip install uv
+
+# COMMAND ----------
+
+# MAGIC %sh uv pip install .
+
+# COMMAND ----------
+
 # MAGIC %restart_python
 
+# COMMAND ----------
+
+import sys
+sys.path.append(".")
 
 # COMMAND ----------
 
@@ -53,23 +64,24 @@ image_processor = ImageProcessor(request_handler, pconfig)
 # This section runs the metadata prompt using the entire image from each example and the last tile (which is always the lower right). The last tile should contain most title blocks due to the dimensions of the tiles and resolution.
 
 if spark:
-    tile_info_df = spark.table(f"{config.catalog}.{config.schema}.tile_info").toPandas()
+    tile_info_df = spark.table(f"{config.catalog}.{config.schema}.{config.preprocess.tile_table_name}").toPandas()
 else:
-    tile_info_df = pd.read_parquet(Path("local_tables") / "tile_info.parquet")
+    tile_info_df = pd.read_parquet(Path("local_tables") / config.preprocess.tile_table_name)
 
 pages_to_parse = (
-    tile_info_df[tile_info_df["page_number"].isin([12])]
-    .sort_values(["page_number", "tile_number"], ascending=[True, False])
-    .groupby("page_number")
+    tile_info_df
+    .sort_values(["filename", "page_number", "tile_number"], ascending=[False, True, False])
+    .groupby(["filename"])
     .first()
     .reset_index()
 )
 
 # COMMAND ----------
+
 # We are going to use a naive loop to query the examples, but will move to Ray or Spark for parallelization for the larger set of queries. The code below sends the excerpt and drawing into our model for a zero shot extraction.
 metadata_results = []
 metadata_raw_responses = []
-for idx, row in pages_to_parse.iterrows():
+for idx, row in pages_to_parse.sample(5).iterrows():
     metadata_row, raw_response = image_processor._parse_row(row, "metadata")
     metadata_results.append(metadata_row)
     metadata_raw_responses.append(raw_response)
@@ -97,11 +109,10 @@ else:
 # This section runs the tag prompt using the entire image from each example and the last tile (which is always the lower right). The last tile should contain most title blocks due to the dimensions of the tiles and resolution.
 tag_results = []
 tag_raw_responses = []
-for idx, row in tile_info_df[tile_info_df["page_number"].isin([12])].iterrows():
+for idx, row in tile_info_df[tile_info_df.file_path_hash.isin(metadata_df.file_path_hash)].iterrows():
     tag_row, raw_response = image_processor._parse_row(row, "tag")
     tag_results.append(tag_row)
     tag_raw_responses.append(raw_response)
-
 
 # COMMAND ----------
 

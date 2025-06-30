@@ -11,7 +11,14 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install -U --quiet -r requirements.txt
+# MAGIC %pip install uv
+
+# COMMAND ----------
+
+# MAGIC %sh uv pip install .
+
+# COMMAND ----------
+
 # MAGIC %restart_python
 
 # COMMAND ----------
@@ -38,7 +45,9 @@ ppconfig = config.preprocess
 
 # COMMAND ----------
 
+all_metadata = []
 for pdf_file_path in Path(ppconfig.raw_path).glob("*.pdf"):
+    print(pdf_file_path)
     # Single file (multipage) workflow
     file_path_hash = hashlib.md5(str(pdf_file_path).encode()).hexdigest()
     pdf_name = pdf_file_path.stem
@@ -52,6 +61,11 @@ for pdf_file_path in Path(ppconfig.raw_path).glob("*.pdf"):
         output_dir=str(output_dir),
         config=ppconfig,
     )
+    all_metadata.extend(metadata)
+
+# COMMAND ----------
+
+len(all_metadata)
 
 # COMMAND ----------
 
@@ -61,12 +75,13 @@ for pdf_file_path in Path(ppconfig.raw_path).glob("*.pdf"):
 
 # COMMAND ----------
 
+spark = get_spark()
 if spark:
     (
-        spark.createDataFrame(pd.DataFrame(metadata))
+        spark.createDataFrame(pd.DataFrame(all_metadata))
         .write.mode("overwrite")
         .option("overwriteSchema", True)
-        .saveAsTable(f"{config.catalog}.{config.schema}.tile_info")
+        .saveAsTable(f"{config.catalog}.{config.schema}.alb_tile_info")
     )
 else:
     pd.DataFrame(metadata).to_parquet(Path("local_tables") / "tile_info.parquet")
