@@ -6,8 +6,9 @@ import time
 from pathlib import Path
 import logging
 from abc import ABC, abstractmethod
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 import copy
+from datetime import datetime
 
 from src.config import ParseConfig
 from src.preprocess import load_image_w_max_size
@@ -64,11 +65,53 @@ class ImageProcessor:
         self.output_dir = Path(config.parsed_path)
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
+        # Create raw response directory
+        self.raw_response_dir = self.output_dir / "raw_responses"
+        self.raw_response_dir.mkdir(parents=True, exist_ok=True)
+
         self.logger = logging.getLogger(__name__)
 
         self.page_files, self.tag_files = get_page_and_tag_files(
             self.config.example_path
         )
+
+    def _check_existing_extraction(
+        self, label_filename: str
+    ) -> Optional[Dict[str, Any]]:
+        """Check if extraction already exists and return it if found"""
+        filepath = self.output_dir / label_filename
+        if filepath.exists():
+            try:
+                with open(filepath, "r") as f:
+                    existing_data = json.load(f)
+                return existing_data
+            except (json.JSONDecodeError, IOError) as e:
+                self.logger.warning(
+                    f"Failed to load existing extraction {filepath}: {e}"
+                )
+                return None
+        return None
+
+    def _save_raw_response(
+        self, task_key: str, task: str, raw_response: str, metadata: Dict[str, Any]
+    ) -> None:
+        """Save raw response with metadata to raw_response directory"""
+        timestamp = datetime.now().isoformat()
+        raw_response_data = {
+            "task_key": task_key,
+            "task": task,
+            "timestamp": timestamp,
+            "metadata": metadata,
+            "raw_response": raw_response,
+        }
+
+        raw_filename = f"{task_key}_{task}_raw.json"
+        raw_filepath = self.raw_response_dir / raw_filename
+
+        with open(raw_filepath, "w") as f:
+            json.dump(raw_response_data, f, indent=4)
+
+        self.logger.info(f"Raw response saved to: {raw_filepath}")
 
     def _get_few_shot_content(self, task: str) -> List[bytes]:
         """Get few shot images from the example paths"""
@@ -225,11 +268,20 @@ class ImageProcessor:
             # if all fails, return response for manual fix
             return response
 
-    def _save_result(self, filename: str, data: Any) -> None:
-        """Save result to file"""
+    def _save_result(
+        self, filename: str, data: Any, raw_response: Optional[str] = None
+    ) -> None:
+        """Save result to file, optionally including raw response"""
+        # Create a copy to avoid modifying the original data
+        save_data = copy.deepcopy(data)
+
+        # Add raw response to saved data if provided
+        if raw_response is not None:
+            save_data["_raw_response"] = raw_response
+
         filepath = self.output_dir / filename
         with open(filepath, "w") as f:
-            json.dump(data, f, indent=4)
+            json.dump(save_data, f, indent=4)
 
     def _parse_row(self, row: Dict[str, Any], task: str = "tag") -> Dict[str, Any]:
         """Process a single image with retry logic"""
@@ -239,33 +291,64 @@ class ImageProcessor:
         assert task in ["tag", "metadata"]
 
         task_key = row["unique_key"]
-
         page_number = row.get("page_number", "Unknown")
         tile_number = row.get("tile_number", "Unknown")
 
-        self.logger.info(f"Starting {task} parsing for document: {task_key}")
-        self.logger.info(f"  Page: {page_number}, Tile: {tile_number}")
-
-        content = self.make_parse_content(row, task)
-
-        prompt = (
-            self.config.tag_prompt if task == "tag" else self.config.metadata_prompt
-        )
-
+        # Determine output filename
         label_filename = f"{task_key}.json"
         if task == "metadata":
             # Remove _t# from label for metadata task
             label_filename = re.sub(r"_t\d+$", "", task_key)
             label_filename = label_filename + ".json"
 
+        # Check if extraction already exists
+        existing_extraction = self._check_existing_extraction(label_filename)
+        if existing_extraction is not None:
+            self.logger.info(
+                f"Existing {task} extraction found for {task_key}, skipping API call"
+            )
+            # Remove raw response from returned data if it exists
+            clean_extraction = {
+                k: v for k, v in existing_extraction.items() if k != "_raw_response"
+            }
+            row[f"parsed_{task}"] = clean_extraction
+            return row, None  # No raw response since we didn't make a request
+
+        self.logger.info(f"Starting {task} parsing for document: {task_key}")
+        self.logger.info(f"  Page: {page_number}, Tile: {tile_number}")
+
+        content = self.make_parse_content(row, task)
+        prompt = (
+            self.config.tag_prompt if task == "tag" else self.config.metadata_prompt
+        )
+
+        # Metadata for raw response
+        metadata = {
+            "page_number": page_number,
+            "tile_number": tile_number,
+            "task": task,
+            "prompt_used": (
+                prompt[:100] + "..." if len(prompt) > 100 else prompt
+            ),  # Truncate for readability
+        }
+
+        raw_response = None
         for attempt in range(self.config.max_retries + 1):
             try:
                 self.logger.info(
                     f"  Attempt {attempt + 1}/{self.config.max_retries + 1} for {task_key}"
                 )
                 raw_response = self.request_handler.make_request(prompt, content)
-                parsed_dict = self._extract_json(raw_response[-1]["text"])
-                self._save_result(label_filename, parsed_dict)
+
+                # Save raw response with metadata
+                self._save_raw_response(task_key, task, raw_response, metadata)
+
+                parsed_dict = self._extract_json(raw_response)
+
+                # Save result with raw response included in file
+                self._save_result(label_filename, parsed_dict, raw_response)
+
+                # Return clean parsed dict without raw response
                 row[f"parsed_{task}"] = parsed_dict
                 self.logger.info(f"  Success")
                 break
@@ -279,10 +362,16 @@ class ImageProcessor:
                     self.logger.error(
                         f"  Max retries exceeded for {task_key}. Saving raw response."
                     )
+                    # Save raw response even on failure
+                    if raw_response:
+                        self._save_raw_response(task_key, task, raw_response, metadata)
                     self._save_result(label_filename, raw_response)
                     row[f"parsed_{task}"] = raw_response
             except Exception as e:
                 self.logger.error(f"  Non-parsing error for {task_key}: {str(e)}")
+                # Save raw response on any error
+                if raw_response:
+                    self._save_raw_response(task_key, task, raw_response, metadata)
                 self._save_result(label_filename, str(e))
                 row[f"parsed_{task}"] = str(e)
                 break

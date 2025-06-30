@@ -7,6 +7,7 @@ import json
 import tempfile
 from unittest.mock import Mock, patch, MagicMock
 from pathlib import Path
+from datetime import datetime
 
 from src.parser import OpenAIRequestHandler, ImageProcessor
 from src.config import ParseConfig, get_parse_config
@@ -119,6 +120,324 @@ class TestImageProcessor:
             assert processor.request_handler == self.mock_handler
             assert processor.config == config
             assert processor.output_dir == Path(temp_dir)
+            # Test new raw response directory creation
+            assert processor.raw_response_dir == Path(temp_dir) / "raw_responses"
+            assert processor.raw_response_dir.exists()
+
+    def test_check_existing_extraction_exists(self):
+        """Test checking for existing extraction when file exists."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config = ParseConfig(
+                parsed_path=temp_dir,
+                local_tables_path="/tmp/local_tables",
+                metadata_table_name="test_metadata",
+                tags_table_name="test_tags",
+                example_path="/tmp/examples",
+                fm_endpoint="test-model",
+                metadata_prompt="test",
+                metadata_example="test",
+                tag_prompt="test",
+                tag_example="test",
+            )
+
+            processor = ImageProcessor(self.mock_handler, config)
+
+            # Create existing extraction file
+            test_data = {"tag": "test_value", "confidence": 0.95}
+            test_file = processor.output_dir / "test_extraction.json"
+            with open(test_file, "w") as f:
+                json.dump(test_data, f)
+
+            result = processor._check_existing_extraction("test_extraction.json")
+
+            assert result == test_data
+
+    def test_check_existing_extraction_not_exists(self):
+        """Test checking for existing extraction when file doesn't exist."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config = ParseConfig(
+                parsed_path=temp_dir,
+                local_tables_path="/tmp/local_tables",
+                metadata_table_name="test_metadata",
+                tags_table_name="test_tags",
+                example_path="/tmp/examples",
+                fm_endpoint="test-model",
+                metadata_prompt="test",
+                metadata_example="test",
+                tag_prompt="test",
+                tag_example="test",
+            )
+
+            processor = ImageProcessor(self.mock_handler, config)
+
+            result = processor._check_existing_extraction("nonexistent.json")
+
+            assert result is None
+
+    def test_check_existing_extraction_corrupted(self):
+        """Test checking for existing extraction with corrupted JSON."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config = ParseConfig(
+                parsed_path=temp_dir,
+                local_tables_path="/tmp/local_tables",
+                metadata_table_name="test_metadata",
+                tags_table_name="test_tags",
+                example_path="/tmp/examples",
+                fm_endpoint="test-model",
+                metadata_prompt="test",
+                metadata_example="test",
+                tag_prompt="test",
+                tag_example="test",
+            )
+
+            processor = ImageProcessor(self.mock_handler, config)
+
+            # Create corrupted JSON file
+            corrupted_file = processor.output_dir / "corrupted.json"
+            corrupted_file.write_text("{ invalid json")
+
+            result = processor._check_existing_extraction("corrupted.json")
+
+            assert result is None
+
+    def test_save_raw_response(self):
+        """Test saving raw response with metadata."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config = ParseConfig(
+                parsed_path=temp_dir,
+                local_tables_path="/tmp/local_tables",
+                metadata_table_name="test_metadata",
+                tags_table_name="test_tags",
+                example_path="/tmp/examples",
+                fm_endpoint="test-model",
+                metadata_prompt="test",
+                metadata_example="test",
+                tag_prompt="test",
+                tag_example="test",
+            )
+
+            processor = ImageProcessor(self.mock_handler, config)
+
+            # Test data
+            task_key = "test_key_001"
+            task = "tag"
+            raw_response = '{"test": "response"}'
+            metadata = {"page_number": 1, "tile_number": 1}
+
+            # Mock datetime to get predictable timestamp
+            with patch("src.parser.datetime") as mock_datetime:
+                mock_datetime.now.return_value.isoformat.return_value = (
+                    "2024-01-01T12:00:00"
+                )
+
+                processor._save_raw_response(task_key, task, raw_response, metadata)
+
+            # Check that raw response file was created
+            expected_file = processor.raw_response_dir / f"{task_key}_{task}_raw.json"
+            assert expected_file.exists()
+
+            # Check file contents
+            with open(expected_file, "r") as f:
+                saved_data = json.load(f)
+
+            expected_data = {
+                "task_key": task_key,
+                "task": task,
+                "timestamp": "2024-01-01T12:00:00",
+                "metadata": metadata,
+                "raw_response": raw_response,
+            }
+
+            assert saved_data == expected_data
+
+    def test_save_result_with_raw_response(self):
+        """Test saving result with raw response included."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config = ParseConfig(
+                parsed_path=temp_dir,
+                local_tables_path="/tmp/local_tables",
+                metadata_table_name="test_metadata",
+                tags_table_name="test_tags",
+                example_path="/tmp/examples",
+                fm_endpoint="test-model",
+                metadata_prompt="test",
+                metadata_example="test",
+                tag_prompt="test",
+                tag_example="test",
+            )
+
+            processor = ImageProcessor(self.mock_handler, config)
+
+            test_data = {"tag": "test_value", "confidence": 0.95}
+            raw_response = '{"tag": "test_value", "confidence": 0.95}'
+            filename = "test_with_raw.json"
+
+            processor._save_result(filename, test_data, raw_response)
+
+            # Check that file was created
+            output_file = processor.output_dir / filename
+            assert output_file.exists()
+
+            # Check file contents include both data and raw response
+            with open(output_file, "r") as f:
+                saved_data = json.load(f)
+
+            expected_data = {
+                "tag": "test_value",
+                "confidence": 0.95,
+                "_raw_response": raw_response,
+            }
+
+            assert saved_data == expected_data
+
+    def test_save_result_without_raw_response(self):
+        """Test saving result without raw response (backward compatibility)."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config = ParseConfig(
+                parsed_path=temp_dir,
+                local_tables_path="/tmp/local_tables",
+                metadata_table_name="test_metadata",
+                tags_table_name="test_tags",
+                example_path="/tmp/examples",
+                fm_endpoint="test-model",
+                metadata_prompt="test",
+                metadata_example="test",
+                tag_prompt="test",
+                tag_example="test",
+            )
+
+            processor = ImageProcessor(self.mock_handler, config)
+
+            test_data = {"tag": "test_value", "confidence": 0.95}
+            filename = "test_without_raw.json"
+
+            processor._save_result(filename, test_data)
+
+            # Check that file was created
+            output_file = processor.output_dir / filename
+            assert output_file.exists()
+
+            # Check file contents don't include raw response
+            with open(output_file, "r") as f:
+                saved_data = json.load(f)
+
+            assert saved_data == test_data
+            assert "_raw_response" not in saved_data
+
+    def test_parse_row_with_existing_extraction(self):
+        """Test parse row with existing extraction (should skip API call)."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config = ParseConfig(
+                parsed_path=temp_dir,
+                local_tables_path="/tmp/local_tables",
+                metadata_table_name="test_metadata",
+                tags_table_name="test_tags",
+                example_path="examples",  # Use real examples path
+                fm_endpoint="test-model",
+                metadata_prompt="test",
+                metadata_example="test",
+                tag_prompt="test",
+                tag_example="test",
+                num_few_shot_examples=0,  # Disable few shot
+            )
+
+            processor = ImageProcessor(self.mock_handler, config)
+
+            # Create existing extraction
+            existing_data = {
+                "tag": "existing_value",
+                "confidence": 0.8,
+                "_raw_response": "old_response",
+            }
+            existing_file = processor.output_dir / "test_key.json"
+            with open(existing_file, "w") as f:
+                json.dump(existing_data, f)
+
+            # Create test image
+            test_image = Path(temp_dir) / "test_image.jpg"
+            test_image.write_bytes(b"fake image data")
+
+            test_row = {
+                "unique_key": "test_key",
+                "tile_path": str(test_image),
+                "page_number": 1,
+                "tile_number": 1,
+            }
+
+            result_row, raw_response = processor._parse_row(test_row, "tag")
+
+            # Should not have called the API
+            assert not self.mock_handler.make_request.called
+
+            # Should return existing data without raw response
+            expected_result = {"tag": "existing_value", "confidence": 0.8}
+            assert result_row["parsed_tag"] == expected_result
+            assert raw_response is None
+
+    def test_parse_row_new_extraction(self):
+        """Test parse row with new extraction (should make API call)."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config = ParseConfig(
+                parsed_path=temp_dir,
+                local_tables_path="/tmp/local_tables",
+                metadata_table_name="test_metadata",
+                tags_table_name="test_tags",
+                example_path="examples",  # Use real examples path
+                fm_endpoint="test-model",
+                metadata_prompt="test",
+                metadata_example="test",
+                tag_prompt="test",
+                tag_example="test",
+                num_few_shot_examples=0,  # Disable few shot
+            )
+
+            # Mock the API response
+            self.mock_handler.make_request.return_value = (
+                '{"tag": "new_value", "confidence": 0.9}'
+            )
+
+            processor = ImageProcessor(self.mock_handler, config)
+
+            # Create test image
+            test_image = Path(temp_dir) / "test_image.jpg"
+            test_image.write_bytes(b"fake image data")
+
+            test_row = {
+                "unique_key": "new_test_key",
+                "tile_path": str(test_image),
+                "page_number": 1,
+                "tile_number": 1,
+            }
+
+            with patch("src.parser.datetime") as mock_datetime:
+                mock_datetime.now.return_value.isoformat.return_value = (
+                    "2024-01-01T12:00:00"
+                )
+
+                result_row, raw_response = processor._parse_row(test_row, "tag")
+
+            # Should have called the API
+            assert self.mock_handler.make_request.called
+
+            # Should return parsed data
+            expected_result = {"tag": "new_value", "confidence": 0.9}
+            assert result_row["parsed_tag"] == expected_result
+            assert raw_response == '{"tag": "new_value", "confidence": 0.9}'
+
+            # Check files were created
+            output_file = processor.output_dir / "new_test_key.json"
+            raw_file = processor.raw_response_dir / "new_test_key_tag_raw.json"
+
+            assert output_file.exists()
+            assert raw_file.exists()
+
+            # Check output file contents
+            with open(output_file, "r") as f:
+                saved_data = json.load(f)
+
+            assert saved_data["tag"] == "new_value"
+            assert saved_data["confidence"] == 0.9
+            assert "_raw_response" in saved_data
 
     def test_load_image(self):
         """Test image loading and base64 encoding with real file."""
