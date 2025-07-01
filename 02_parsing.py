@@ -98,7 +98,7 @@ if spark:
         spark.createDataFrame(metadata_df)
         .write.mode("overwrite")
         .option("overwriteSchema", True)
-        .saveAsTable(f"{config.catalog}.{config.schema}.metadata_results")
+        .saveAsTable(f"{config.catalog}.{config.schema}.{pconfig.metadata_table_name}")
     )
 else:
     metadata_df.to_parquet(Path("local_tables") / "metadata_results.parquet")
@@ -117,7 +117,6 @@ for idx, row in tile_info_df[tile_info_df.file_path_hash.isin(metadata_df.file_p
 # COMMAND ----------
 
 # refresh spark connection
-spark = get_spark()
 tag_df = pd.DataFrame(tag_results)
 if spark:
     tag_df["parsed_tag"] = tag_df["parsed_tag"].apply(json.dumps)
@@ -125,7 +124,7 @@ if spark:
         spark.createDataFrame(tag_df)
         .write.mode("overwrite")
         .option("overwriteSchema", True)
-        .saveAsTable(f"{config.catalog}.{config.schema}.tag_results")
+        .saveAsTable(f"{config.catalog}.{config.schema}.{pconfig.tags_table_name}")
     )
 else:
     pd.DataFrame(tag_df).to_parquet(Path("local_tables") / "tag_results.parquet")
