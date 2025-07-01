@@ -131,6 +131,7 @@ class TestProcessPdfToTiles:
             config = PreprocessConfig(
                 raw_path="/tmp/test.pdf",
                 processed_path=temp_dir,
+                tile_table_name="test_tile_table",
                 dpi=200,
                 tile_width_px=1000,
                 tile_height_px=512,
@@ -181,6 +182,7 @@ class TestProcessPdfToTiles:
                 config = PreprocessConfig(
                     raw_path="/tmp/test.pdf",
                     processed_path=temp_dir,
+                    tile_table_name="test_table",
                     dpi=-1,  # Invalid DPI
                     tile_width_px=1000,
                     tile_height_px=500,
@@ -209,6 +211,7 @@ class TestProcessPdfToTiles:
             config = PreprocessConfig(
                 raw_path="/tmp/multipage.pdf",
                 processed_path=temp_dir,
+                tile_table_name="test_multipage_table",
                 dpi=150,
                 tile_width_px=512,
                 tile_height_px=512,

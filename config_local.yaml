@@ -1,26 +1,26 @@
 catalog: shm
 schema: pid
 preprocess:
-  raw_path: /Volumes/shm/pid/alb_raw_pdfs
-  processed_path: /Volumes/shm/pid/alb_processed_pdfs
-  tile_table_name: alb_tile_info
+  raw_path: assets
+  processed_path: processed_pdfs
+  tile_table_name: tile_info
   dpi: 200
   tile_width_px: 4096
   tile_height_px: 2048
   overlap_px: 256
 parse:
-  example_path: /Volumes/shm/pid/alb_examples
-  parsed_path: /Volumes/shm/pid/alb_parsed_pdfs
-  local_tables_path: alb_local_tables
-  metadata_table_name: alb_metadata_results
-  tags_table_name: alb_tag_results
+  example_path: examples
+  parsed_path: parsed_pdfs
+  local_tables_path: local_tables
+  metadata_table_name: metadata_results
+  tags_table_name: tag_results
   fm_endpoint: databricks-claude-3-7-sonnet
   temperature: 0.1
   thinking_budget_tokens: 2048
   max_retries: 2
   retry_delay_s: 1
-  overwrite: false
   num_few_shot_examples: 2
+  overwrite: true
   metadata_prompt: |
     You are an expert in parsing process and instrumentation diagrams and engineering drawings. You will be given a full drawing and a zoomed in excerpt of the title block and your task is to extract metadata including:
 

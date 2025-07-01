@@ -34,7 +34,7 @@ from src.config import load_config
 # COMMAND ----------
 
 spark = get_spark()
-config = load_config("config.yaml")
+config = load_config("config_local.yaml")
 ppconfig = config.preprocess
 
 # COMMAND ----------
@@ -81,7 +81,11 @@ if spark:
         spark.createDataFrame(pd.DataFrame(all_metadata))
         .write.mode("overwrite")
         .option("overwriteSchema", True)
-        .saveAsTable(f"{config.catalog}.{config.schema}.alb_tile_info")
+        .saveAsTable(
+            f"{config.catalog}.{config.schema}.{config.preprocess.tile_table_name}"
+        )
     )
 else:
-    pd.DataFrame(metadata).to_parquet(Path("local_tables") / "tile_info.parquet")
+    pd.DataFrame(metadata).to_parquet(
+        Path("local_tables") / f"{config.preprocess.tile_table_name}.parquet"
+    )

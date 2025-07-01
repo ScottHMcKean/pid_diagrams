@@ -70,6 +70,9 @@ class ParseConfig(BaseModel):
     num_few_shot_examples: int = Field(
         0, description="Number of few shot examples to use"
     )
+    overwrite: bool = Field(
+        False, description="Whether to overwrite existing extractions"
+    )
 
     @field_validator("temperature")
     @classmethod

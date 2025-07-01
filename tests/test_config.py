@@ -37,11 +37,12 @@ class TestConfigLoading:
         config = get_preprocessing_config("config.yaml")
 
         assert isinstance(config, PreprocessConfig)
-        assert config.raw_path == "assets"
+        assert config.raw_path == "/Volumes/shm/pid/alb_raw_pdfs"
         assert config.dpi == 200
         assert config.tile_width_px == 4096
         assert config.tile_height_px == 2048
         assert config.overlap_px == 256
+        assert config.tile_table_name == "alb_tile_info"
 
         # Test model_dump works
         config_dict = config.model_dump()
@@ -79,6 +80,7 @@ class TestConfigValidation:
             PreprocessConfig(
                 raw_path="test.pdf",
                 processed_path="/tmp",
+                tile_table_name="test_table",
                 dpi=10,  # Too low
                 tile_width_px=2048,
                 tile_height_px=1024,
@@ -89,6 +91,7 @@ class TestConfigValidation:
             PreprocessConfig(
                 raw_path="test.pdf",
                 processed_path="/tmp",
+                tile_table_name="test_table",
                 dpi=1000,  # Too high
                 tile_width_px=2048,
                 tile_height_px=1024,
@@ -101,6 +104,7 @@ class TestConfigValidation:
             PreprocessConfig(
                 raw_path="test.pdf",
                 processed_path="/tmp",
+                tile_table_name="test_table",
                 dpi=200,
                 tile_width_px=100,  # Too small
                 tile_height_px=1024,
@@ -167,6 +171,7 @@ class TestConfigCompatibility:
             "dpi",
             "tile_width_px",
             "tile_height_px",
+            "tile_table_name",
             "overlap_px",
         }
         assert set(config_dict.keys()) == expected_keys

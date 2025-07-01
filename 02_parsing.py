@@ -19,6 +19,7 @@
 # COMMAND ----------
 
 import sys
+
 sys.path.append(".")
 
 # COMMAND ----------
@@ -37,7 +38,7 @@ from src.utils import get_spark, get_token
 # COMMAND ----------
 
 spark = get_spark()
-config = load_config("config.yaml")
+config = load_config("config_local.yaml")
 pconfig = config.parse
 
 # COMMAND ----------
@@ -62,15 +63,20 @@ image_processor = ImageProcessor(request_handler, pconfig)
 # Metadata parsing (per page)
 # This query pulls the last tile from each example page
 # This section runs the metadata prompt using the entire image from each example and the last tile (which is always the lower right). The last tile should contain most title blocks due to the dimensions of the tiles and resolution.
-
 if spark:
-    tile_info_df = spark.table(f"{config.catalog}.{config.schema}.{config.preprocess.tile_table_name}").toPandas()
+    tile_info_df = spark.table(
+        f"{config.catalog}.{config.schema}.{config.preprocess.tile_table_name}"
+    ).toPandas()
 else:
-    tile_info_df = pd.read_parquet(Path("local_tables") / config.preprocess.tile_table_name)
+    tile_info_df = pd.read_parquet(
+        Path("local_tables") / f"{config.preprocess.tile_table_name}.parquet"
+    )
 
 pages_to_parse = (
-    tile_info_df
-    .sort_values(["filename", "page_number", "tile_number"], ascending=[False, True, False])
+    tile_info_df.query("page_number==12")
+    .sort_values(
+        ["filename", "page_number", "tile_number"], ascending=[False, True, False]
+    )
     .groupby(["filename"])
     .first()
     .reset_index()
@@ -80,11 +86,9 @@ pages_to_parse = (
 
 # We are going to use a naive loop to query the examples, but will move to Ray or Spark for parallelization for the larger set of queries. The code below sends the excerpt and drawing into our model for a zero shot extraction.
 metadata_results = []
-metadata_raw_responses = []
-for idx, row in pages_to_parse.sample(5).iterrows():
-    metadata_row, raw_response = image_processor._parse_row(row, "metadata")
+for idx, row in pages_to_parse.iterrows():
+    metadata_row = image_processor._parse_row(row, "metadata")
     metadata_results.append(metadata_row)
-    metadata_raw_responses.append(raw_response)
 
 # COMMAND ----------
 
@@ -108,11 +112,11 @@ else:
 # Tag parsing (per tile)
 # This section runs the tag prompt using the entire image from each example and the last tile (which is always the lower right). The last tile should contain most title blocks due to the dimensions of the tiles and resolution.
 tag_results = []
-tag_raw_responses = []
-for idx, row in tile_info_df[tile_info_df.file_path_hash.isin(metadata_df.file_path_hash)].iterrows():
-    tag_row, raw_response = image_processor._parse_row(row, "tag")
+for idx, row in tile_info_df[
+    tile_info_df.file_path_hash.isin(metadata_df.file_path_hash)
+].iterrows():
+    tag_row = image_processor._parse_row(row, "tag")
     tag_results.append(tag_row)
-    tag_raw_responses.append(raw_response)
 
 # COMMAND ----------
 

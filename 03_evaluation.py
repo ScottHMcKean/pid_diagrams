@@ -47,7 +47,7 @@ from src.evaluation import (
 # COMMAND ----------
 
 spark = get_spark()
-config = load_config("config.yaml")
+config = load_config("config_local.yaml")
 
 # Load ground truth and parsed data using abstracted functions
 # ground_truth_df = load_ground_truth_json(config)

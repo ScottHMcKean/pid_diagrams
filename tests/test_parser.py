@@ -364,15 +364,16 @@ class TestImageProcessor:
                 "tile_number": 1,
             }
 
-            result_row, raw_response = processor._parse_row(test_row, "tag")
+            result_row = processor._parse_row(test_row, "tag")
+            raw_response = result_row.get("raw_response")
 
             # Should not have called the API
             assert not self.mock_handler.make_request.called
 
-            # Should return existing data without raw response
+            # Should return existing data with raw response
             expected_result = {"tag": "existing_value", "confidence": 0.8}
             assert result_row["parsed_tag"] == expected_result
-            assert raw_response is None
+            assert raw_response == "old_response"
 
     def test_parse_row_new_extraction(self):
         """Test parse row with new extraction (should make API call)."""
@@ -414,7 +415,8 @@ class TestImageProcessor:
                     "2024-01-01T12:00:00"
                 )
 
-                result_row, raw_response = processor._parse_row(test_row, "tag")
+                result_row = processor._parse_row(test_row, "tag")
+                raw_response = result_row.get("raw_response")
 
             # Should have called the API
             assert self.mock_handler.make_request.called
