@@ -15,14 +15,12 @@
 
 # COMMAND ----------
 # %%
-
 import sys
 
 sys.path.append(".")
 
 # COMMAND ----------
 # %%
-
 from pathlib import Path
 import pandas as pd
 import json
@@ -36,18 +34,15 @@ from src.utils import get_spark, get_token
 
 # COMMAND ----------
 # %%
-
 spark = get_spark()
 config = load_config("config_local.yaml")
 pconfig = config.parse
 
 # COMMAND ----------
 # %%
-
 # Setup LLM Client
 w = WorkspaceClient()
 token = get_token(w)
-
 llm_client = OpenAI(
     api_key=token,
     base_url=f"{w.config.host}/serving-endpoints",
@@ -55,14 +50,12 @@ llm_client = OpenAI(
 
 # COMMAND ----------
 # %%
-
 # Setup request handler and image processor
 request_handler = OpenAIRequestHandler(llm_client, pconfig)
 image_processor = ImageProcessor(request_handler, pconfig)
 
 # COMMAND ----------
 # %%
-
 # Metadata parsing (per page)
 # This query pulls the last tile from each example page
 # This section runs the metadata prompt using the entire image from each example and the last tile (which is always the lower right). The last tile should contain most title blocks due to the dimensions of the tiles and resolution.
@@ -96,7 +89,6 @@ for idx, row in pages_to_parse.iterrows():
 
 # COMMAND ----------
 # %%
-
 # Metadata results
 # We write the results to a table for future use.
 # We cast the json to a string to avoid issues with mixes lists and strings, or null types.

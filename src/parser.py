@@ -323,7 +323,7 @@ class ImageProcessor:
                 )
                 raw_response = self.request_handler.make_request(prompt, content)
                 full_response["raw_response"] = raw_response
-                parsed_dict = self._extract_json(raw_response)
+                parsed_dict = self._extract_json(raw_response[-1]["text"])
                 full_response["parsed_dict"] = parsed_dict
                 self._save_result(full_response)
 
