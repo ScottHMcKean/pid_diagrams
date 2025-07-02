@@ -5,18 +5,12 @@
 # MAGIC This notebook uses the preprocessed images to do zero and few shot parsing of the P&ID diagrams. This notebook has been tested on serverless v3.
 
 # COMMAND ----------
-# %%
-
 # MAGIC %pip install uv
 
 # COMMAND ----------
-# %%
-
 # MAGIC %sh uv pip install .
 
 # COMMAND ----------
-# %%
-
 # MAGIC %restart_python
 
 # COMMAND ----------

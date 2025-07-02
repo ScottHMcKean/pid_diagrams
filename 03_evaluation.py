@@ -5,23 +5,15 @@
 # MAGIC This notebook uses the parsing outputs to compare against the ground truth labels.
 
 # COMMAND ----------
-# %%
-
 # MAGIC %pip install uv
 
 # COMMAND ----------
-# %%
-
 # MAGIC %sh uv pip install .
 
 # COMMAND ----------
-# %%
-
 # MAGIC %restart_python
 
 # COMMAND ----------
-# %%
-
 # 1. Pull grount truth labels
 # 2. Write function to combine tags
 # 3. Load parsing outputs
@@ -36,7 +28,6 @@ sys.path.append(".")
 
 # COMMAND ----------
 # %%
-
 import pandas as pd
 from pathlib import Path
 
@@ -52,7 +43,6 @@ from src.evaluation import (
 
 # COMMAND ----------
 # %%
-
 spark = get_spark()
 config = load_config("config_local.yaml")
 
@@ -93,5 +83,3 @@ metrics_df = evaluate_parsed_vs_ground_truth(
 metrics_df.drop("unique_key", axis=1).agg(
     ["mean", "max", "min", "count", "std"]
 ).T.round(2)
-
-# %%
