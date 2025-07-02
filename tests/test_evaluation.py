@@ -3,9 +3,11 @@
 import pytest
 import pandas as pd
 import numpy as np
+from unittest.mock import Mock, patch, MagicMock
 
 from src.evaluation import (
     clean_pid_tags,
+    load_ground_truth,
     jaccard_similarity,
     normalized_levenshtein,
     boolean_accuracy,
@@ -13,6 +15,7 @@ from src.evaluation import (
     calculate_precision,
     evaluate_parsed_vs_ground_truth,
 )
+from src.config import PIDConfig, EvaluateConfig, ParseConfig, PreprocessConfig
 
 
 class TestCleanPidTags:
@@ -282,3 +285,144 @@ def test_evaluate_parsed_vs_ground_truth():
 
     # Same boolean (returns int now)
     assert test2_row["has_stamp_boolean"] == 1
+
+
+@pytest.mark.evaluation
+class TestLoadGroundTruth:
+    """Test the unified load_ground_truth function."""
+
+    def _create_test_config(
+        self, source: str, json_path: str = None, table: str = None
+    ) -> PIDConfig:
+        """Helper to create test config with different evaluation sources."""
+        return PIDConfig(
+            catalog="test_catalog",
+            schema="test_schema",
+            preprocess=PreprocessConfig(
+                raw_path="/test/raw",
+                processed_path="/test/processed",
+                tile_table_name="test_tiles",
+            ),
+            parse=ParseConfig(
+                parsed_path="/test/parsed",
+                example_path="/test/examples",
+                local_tables_path="/test/local",
+                metadata_table_name="test_metadata",
+                tags_table_name="test_tags",
+                fm_endpoint="test-endpoint",
+                metadata_prompt="test prompt",
+                metadata_example="test example",
+                tag_prompt="test prompt",
+                tag_example="test example",
+            ),
+            evaluate=EvaluateConfig(
+                ground_truth_source=source,
+                ground_truth_json_path=json_path,
+                ground_truth_table=table,
+            ),
+        )
+
+    @patch("src.evaluation.load_ground_truth_json")
+    def test_load_ground_truth_json_source(self, mock_json_loader):
+        """Test loading ground truth from JSON source."""
+        # Setup
+        config = self._create_test_config("json", json_path="/test/examples")
+        expected_df = pd.DataFrame({"test": ["data"]})
+        mock_json_loader.return_value = expected_df
+
+        # Execute
+        result = load_ground_truth(config)
+
+        # Verify
+        assert result.equals(expected_df)
+        mock_json_loader.assert_called_once()
+
+        # Check that the temporary config was created with correct example_path
+        call_args = mock_json_loader.call_args[0][0]
+        assert call_args.parse.example_path == "/test/examples"
+
+    @patch("src.evaluation.load_ground_truth_load_sheet")
+    @patch("src.evaluation.get_spark")
+    def test_load_ground_truth_load_sheet_source(
+        self, mock_get_spark, mock_sheet_loader
+    ):
+        """Test loading ground truth from load_sheet source."""
+        # Setup
+        config = self._create_test_config("load_sheet", table="test.catalog.table")
+        expected_df = pd.DataFrame({"test": ["data"]})
+        mock_spark = Mock()
+        mock_get_spark.return_value = mock_spark
+        mock_sheet_loader.return_value = expected_df
+
+        # Execute
+        result = load_ground_truth(config)
+
+        # Verify
+        assert result.equals(expected_df)
+        mock_sheet_loader.assert_called_once_with(mock_spark, "test.catalog.table")
+        mock_get_spark.assert_called_once()
+
+    @patch("src.evaluation.load_ground_truth_load_sheet")
+    def test_load_ground_truth_load_sheet_source_with_spark(self, mock_sheet_loader):
+        """Test loading ground truth from load_sheet source with provided spark session."""
+        # Setup
+        config = self._create_test_config("load_sheet", table="test.catalog.table")
+        expected_df = pd.DataFrame({"test": ["data"]})
+        mock_spark = Mock()
+        mock_sheet_loader.return_value = expected_df
+
+        # Execute
+        result = load_ground_truth(config, spark=mock_spark)
+
+        # Verify
+        assert result.equals(expected_df)
+        mock_sheet_loader.assert_called_once_with(mock_spark, "test.catalog.table")
+
+    def test_load_ground_truth_invalid_source(self):
+        """Test that invalid source raises ValidationError during config creation."""
+        from pydantic import ValidationError
+
+        with pytest.raises(
+            ValidationError, match="Input should be 'json' or 'load_sheet'"
+        ):
+            self._create_test_config("invalid_source")
+
+    def test_load_ground_truth_json_missing_path(self):
+        """Test that JSON source without path raises ValidationError during config creation."""
+        from pydantic import ValidationError
+
+        with pytest.raises(
+            ValidationError,
+            match="ground_truth_json_path is required when source is 'json'",
+        ):
+            self._create_test_config("json")  # No json_path provided
+
+    def test_load_ground_truth_load_sheet_missing_table(self):
+        """Test that load_sheet source without table raises ValidationError during config creation."""
+        from pydantic import ValidationError
+
+        with pytest.raises(
+            ValidationError,
+            match="ground_truth_table is required when source is 'load_sheet'",
+        ):
+            self._create_test_config("load_sheet")  # No table provided
+
+    @patch("src.evaluation.load_ground_truth_json")
+    def test_load_ground_truth_json_preserves_original_config(self, mock_json_loader):
+        """Test that the original config is not modified when creating temp config."""
+        # Setup
+        original_example_path = "/original/examples"
+        config = self._create_test_config("json", json_path="/test/examples")
+        config.parse.example_path = original_example_path
+
+        mock_json_loader.return_value = pd.DataFrame({"test": ["data"]})
+
+        # Execute
+        load_ground_truth(config)
+
+        # Verify original config is unchanged
+        assert config.parse.example_path == original_example_path
+
+        # Verify temporary config was created correctly
+        call_args = mock_json_loader.call_args[0][0]
+        assert call_args.parse.example_path == "/test/examples"

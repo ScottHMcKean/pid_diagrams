@@ -125,3 +125,8 @@ parse:
         DESIGN TEMP: 150C, DESIHN PRESS 7350 kPa
       ],
     }
+evaluate:
+  ground_truth_source: json
+  metadata_tag_source: local
+  ground_truth_json_path: examples
+  ground_truth_table: shm.pid.alb_load_sheet

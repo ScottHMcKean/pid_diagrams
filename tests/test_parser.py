@@ -200,8 +200,8 @@ class TestImageProcessor:
 
             assert result is None
 
-    def test_save_raw_response(self):
-        """Test saving raw response with metadata."""
+    def test_save_result_structure(self):
+        """Test saving result with correct structure expected by current implementation."""
         with tempfile.TemporaryDirectory() as temp_dir:
             config = ParseConfig(
                 parsed_path=temp_dir,
@@ -218,40 +218,42 @@ class TestImageProcessor:
 
             processor = ImageProcessor(self.mock_handler, config)
 
-            # Test data
-            task_key = "test_key_001"
-            task = "tag"
-            raw_response = '{"test": "response"}'
-            metadata = {"page_number": 1, "tile_number": 1}
-
-            # Mock datetime to get predictable timestamp
-            with patch("src.parser.datetime") as mock_datetime:
-                mock_datetime.now.return_value.isoformat.return_value = (
-                    "2024-01-01T12:00:00"
-                )
-
-                processor._save_raw_response(task_key, task, raw_response, metadata)
-
-            # Check that raw response file was created
-            expected_file = processor.raw_response_dir / f"{task_key}_{task}_raw.json"
-            assert expected_file.exists()
-
-            # Check file contents
-            with open(expected_file, "r") as f:
-                saved_data = json.load(f)
-
-            expected_data = {
-                "task_key": task_key,
-                "task": task,
-                "timestamp": "2024-01-01T12:00:00",
-                "metadata": metadata,
-                "raw_response": raw_response,
+            # Test data in the format expected by _save_result
+            full_response = {
+                "unique_key": "test_key_001",
+                "label_filename": "test_key_001.json",
+                "parsed_dict": {"tag": "test_value", "confidence": 0.95},
+                "raw_response": '{"tag": "test_value", "confidence": 0.95}',
+                "page_number": 1,
+                "tile_number": 1,
+                "task": "tag",
             }
 
-            assert saved_data == expected_data
+            processor._save_result(full_response)
+
+            # Check that main file was created
+            output_file = processor.output_dir / "test_key_001.json"
+            assert output_file.exists()
+
+            # Check that raw response file was created
+            raw_file = processor.raw_response_dir / "test_key_001.json"
+            assert raw_file.exists()
+
+            # Check main file contents
+            with open(output_file, "r") as f:
+                saved_data = json.load(f)
+            assert saved_data == {"tag": "test_value", "confidence": 0.95}
+
+            # Check raw response file contents
+            with open(raw_file, "r") as f:
+                raw_data = json.load(f)
+            assert raw_data["parsed_dict"] == {"tag": "test_value", "confidence": 0.95}
+            assert (
+                raw_data["raw_response"] == '{"tag": "test_value", "confidence": 0.95}'
+            )
 
     def test_save_result_with_raw_response(self):
-        """Test saving result with raw response included."""
+        """Test saving result with the current implementation structure."""
         with tempfile.TemporaryDirectory() as temp_dir:
             config = ParseConfig(
                 parsed_path=temp_dir,
@@ -268,30 +270,31 @@ class TestImageProcessor:
 
             processor = ImageProcessor(self.mock_handler, config)
 
-            test_data = {"tag": "test_value", "confidence": 0.95}
-            raw_response = '{"tag": "test_value", "confidence": 0.95}'
-            filename = "test_with_raw.json"
+            full_response = {
+                "unique_key": "test_with_raw",
+                "label_filename": "test_with_raw.json",
+                "parsed_dict": {"tag": "test_value", "confidence": 0.95},
+                "raw_response": '{"tag": "test_value", "confidence": 0.95}',
+                "page_number": 1,
+                "tile_number": 1,
+                "task": "tag",
+            }
 
-            processor._save_result(filename, test_data, raw_response)
+            processor._save_result(full_response)
 
             # Check that file was created
-            output_file = processor.output_dir / filename
+            output_file = processor.output_dir / "test_with_raw.json"
             assert output_file.exists()
 
-            # Check file contents include both data and raw response
+            # Check file contents
             with open(output_file, "r") as f:
                 saved_data = json.load(f)
 
-            expected_data = {
-                "tag": "test_value",
-                "confidence": 0.95,
-                "_raw_response": raw_response,
-            }
-
+            expected_data = {"tag": "test_value", "confidence": 0.95}
             assert saved_data == expected_data
 
     def test_save_result_without_raw_response(self):
-        """Test saving result without raw response (backward compatibility)."""
+        """Test saving result without raw response using current implementation."""
         with tempfile.TemporaryDirectory() as temp_dir:
             config = ParseConfig(
                 parsed_path=temp_dir,
@@ -308,20 +311,27 @@ class TestImageProcessor:
 
             processor = ImageProcessor(self.mock_handler, config)
 
-            test_data = {"tag": "test_value", "confidence": 0.95}
-            filename = "test_without_raw.json"
+            full_response = {
+                "unique_key": "test_without_raw",
+                "label_filename": "test_without_raw.json",
+                "parsed_dict": {"tag": "test_value", "confidence": 0.95},
+                "raw_response": None,
+                "page_number": 1,
+                "tile_number": 1,
+                "task": "tag",
+            }
 
-            processor._save_result(filename, test_data)
+            processor._save_result(full_response)
 
             # Check that file was created
-            output_file = processor.output_dir / filename
+            output_file = processor.output_dir / "test_without_raw.json"
             assert output_file.exists()
 
             # Check file contents don't include raw response
             with open(output_file, "r") as f:
                 saved_data = json.load(f)
 
-            assert saved_data == test_data
+            assert saved_data == {"tag": "test_value", "confidence": 0.95}
             assert "_raw_response" not in saved_data
 
     def test_parse_row_with_existing_extraction(self):
@@ -428,18 +438,21 @@ class TestImageProcessor:
 
             # Check files were created
             output_file = processor.output_dir / "new_test_key.json"
-            raw_file = processor.raw_response_dir / "new_test_key_tag_raw.json"
+            raw_file = (
+                processor.raw_response_dir / "new_test_key.json"
+            )  # Raw file uses same name as output
 
             assert output_file.exists()
             assert raw_file.exists()
 
-            # Check output file contents
+            # Check output file contents - should only contain parsed_dict
             with open(output_file, "r") as f:
                 saved_data = json.load(f)
 
             assert saved_data["tag"] == "new_value"
             assert saved_data["confidence"] == 0.9
-            assert "_raw_response" in saved_data
+            # Raw response is stored separately, not in main file
+            assert "_raw_response" not in saved_data
 
     def test_load_image(self):
         """Test image loading and base64 encoding with real file."""
@@ -584,19 +597,27 @@ class TestImageProcessor:
 
             processor = ImageProcessor(self.mock_handler, config)
 
-            test_data = {"test": "data", "number": 42}
-            filename = "test_output.json"
+            # Use the correct full_response structure expected by _save_result
+            full_response = {
+                "unique_key": "test_output",
+                "label_filename": "test_output.json",
+                "parsed_dict": {"test": "data", "number": 42},
+                "raw_response": '{"test": "data", "number": 42}',
+                "page_number": 1,
+                "tile_number": 1,
+                "task": "test",
+            }
 
-            processor._save_result(filename, test_data)
+            processor._save_result(full_response)
 
             # Check that file was created and contains correct data
-            output_file = Path(temp_dir) / filename
+            output_file = Path(temp_dir) / "test_output.json"
             assert output_file.exists()
 
             with open(output_file, "r") as f:
                 saved_data = json.load(f)
 
-            assert saved_data == test_data
+            assert saved_data == {"test": "data", "number": 42}
 
 
 @pytest.mark.parser

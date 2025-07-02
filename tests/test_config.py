@@ -10,9 +10,11 @@ from src.config import (
     load_config,
     get_preprocessing_config,
     get_parse_config,
+    get_evaluate_config,
     PIDConfig,
     PreprocessConfig,
     ParseConfig,
+    EvaluateConfig,
 )
 
 
@@ -62,6 +64,28 @@ class TestConfigLoading:
         assert config.retry_delay_s == 1
         assert len(config.metadata_prompt) > 0
         assert len(config.tag_prompt) > 0
+
+    def test_evaluate_config(self):
+        """Test evaluation configuration loading and validation."""
+        config = get_evaluate_config("config.yaml")
+
+        assert isinstance(config, EvaluateConfig)
+        assert config.ground_truth_source == "load_sheet"
+        assert config.ground_truth_table == "shm.pid.alb_load_sheet"
+        assert config.ground_truth_json_path == "/Volumes/shm/pid/alb_examples"
+
+        # Test model_dump works
+        config_dict = config.model_dump()
+        assert isinstance(config_dict, dict)
+        assert "ground_truth_source" in config_dict
+
+    def test_full_config_includes_evaluate(self):
+        """Test that full config loading includes evaluation section."""
+        config = load_config("config.yaml")
+
+        assert hasattr(config, "evaluate")
+        assert isinstance(config.evaluate, EvaluateConfig)
+        assert config.evaluate.ground_truth_source == "load_sheet"
 
     def test_config_file_not_found(self):
         """Test behavior when config file doesn't exist."""
@@ -144,6 +168,49 @@ class TestConfigValidation:
                 tag_prompt="test",
                 tag_example="test",
             )
+
+    def test_evaluate_config_validation(self):
+        """Test evaluation configuration validation."""
+        with pytest.raises(ValidationError):
+            EvaluateConfig(
+                ground_truth_source="invalid_source",
+                ground_truth_table="invalid_table",
+                ground_truth_json_path="invalid_path",
+            )
+
+    def test_evaluate_config_json_source_validation(self):
+        """Test that JSON path is required when source is json."""
+        with pytest.raises(ValidationError):
+            EvaluateConfig(
+                ground_truth_source="json",
+                ground_truth_table="some_table",  # This should be ignored
+                # Missing ground_truth_json_path
+            )
+
+        # This should work
+        config = EvaluateConfig(
+            ground_truth_source="json",
+            ground_truth_json_path="/path/to/examples",
+        )
+        assert config.ground_truth_source == "json"
+        assert config.ground_truth_json_path == "/path/to/examples"
+
+    def test_evaluate_config_load_sheet_source_validation(self):
+        """Test that table name is required when source is load_sheet."""
+        with pytest.raises(ValidationError):
+            EvaluateConfig(
+                ground_truth_source="load_sheet",
+                ground_truth_json_path="/some/path",  # This should be ignored
+                # Missing ground_truth_table
+            )
+
+        # This should work
+        config = EvaluateConfig(
+            ground_truth_source="load_sheet",
+            ground_truth_table="catalog.schema.table",
+        )
+        assert config.ground_truth_source == "load_sheet"
+        assert config.ground_truth_table == "catalog.schema.table"
 
 
 @pytest.mark.config

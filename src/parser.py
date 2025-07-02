@@ -271,16 +271,14 @@ class ImageProcessor:
 
         assert task in ["tag", "metadata"]
 
+        if task == "metadata":
+            # Remove _t# from unique_key for metadata task
+            row["unique_key"] = re.sub(r"_t\d+$", "", row["unique_key"])
+
         unique_key = row["unique_key"]
+        label_filename = f"{unique_key}.json"
         page_number = row.get("page_number", "Unknown")
         tile_number = row.get("tile_number", "Unknown")
-
-        # Determine output filename
-        label_filename = f"{unique_key}.json"
-        if task == "metadata":
-            # Remove _t# from label for metadata task
-            label_filename = re.sub(r"_t\d+$", "", unique_key)
-            label_filename = label_filename + ".json"
 
         # Check if extraction already exists and if we should overwrite
         existing_extraction = self._check_existing_extraction(label_filename)
@@ -324,8 +322,8 @@ class ImageProcessor:
                     f"  Attempt {attempt + 1}/{self.config.max_retries + 1} for {unique_key}"
                 )
                 raw_response = self.request_handler.make_request(prompt, content)
-                full_response["raw_response"] = json.dumps(raw_response)
-                parsed_dict = self._extract_json(raw_response[-1]["text"])
+                full_response["raw_response"] = raw_response
+                parsed_dict = self._extract_json(raw_response)
                 full_response["parsed_dict"] = parsed_dict
                 self._save_result(full_response)
 
@@ -348,7 +346,7 @@ class ImageProcessor:
                     self.logger.error(
                         f"  Max retries exceeded for {unique_key}. Saving raw response."
                     )
-                    full_response["raw_response"] = json.dumps(raw_response)
+                    full_response["raw_response"] = raw_response
                     full_response["parsed_dict"] = {"error": "Max retries exceeded"}
                     self._save_result(full_response)
                     row[f"parsed_{task}"] = full_response["parsed_dict"]

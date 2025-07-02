@@ -63,6 +63,7 @@ markers = [
     "config: Configuration tests",
     "parser: Parser tests",
     "preprocess: Preprocessing tests",
+    "evaluation: Evaluation tests",
 ]
 
 # Minimum version

@@ -5,24 +5,29 @@
 # MAGIC This notebook uses the preprocessed images to do zero and few shot parsing of the P&ID diagrams. This notebook has been tested on serverless v3.
 
 # COMMAND ----------
+# %%
 
 # MAGIC %pip install uv
 
 # COMMAND ----------
+# %%
 
 # MAGIC %sh uv pip install .
 
 # COMMAND ----------
+# %%
 
 # MAGIC %restart_python
 
 # COMMAND ----------
+# %%
 
 import sys
 
 sys.path.append(".")
 
 # COMMAND ----------
+# %%
 
 from pathlib import Path
 import pandas as pd
@@ -36,12 +41,14 @@ from src.parser import OpenAIRequestHandler, ImageProcessor
 from src.utils import get_spark, get_token
 
 # COMMAND ----------
+# %%
 
 spark = get_spark()
 config = load_config("config_local.yaml")
 pconfig = config.parse
 
 # COMMAND ----------
+# %%
 
 # Setup LLM Client
 w = WorkspaceClient()
@@ -53,12 +60,14 @@ llm_client = OpenAI(
 )
 
 # COMMAND ----------
+# %%
 
 # Setup request handler and image processor
 request_handler = OpenAIRequestHandler(llm_client, pconfig)
 image_processor = ImageProcessor(request_handler, pconfig)
 
 # COMMAND ----------
+# %%
 
 # Metadata parsing (per page)
 # This query pulls the last tile from each example page
@@ -83,6 +92,7 @@ pages_to_parse = (
 )
 
 # COMMAND ----------
+# %%
 
 # We are going to use a naive loop to query the examples, but will move to Ray or Spark for parallelization for the larger set of queries. The code below sends the excerpt and drawing into our model for a zero shot extraction.
 metadata_results = []
@@ -91,6 +101,7 @@ for idx, row in pages_to_parse.iterrows():
     metadata_results.append(metadata_row)
 
 # COMMAND ----------
+# %%
 
 # Metadata results
 # We write the results to a table for future use.
@@ -108,17 +119,21 @@ else:
     metadata_df.to_parquet(Path("local_tables") / "metadata_results.parquet")
 
 # COMMAND ----------
+# %%
 
 # Tag parsing (per tile)
 # This section runs the tag prompt using the entire image from each example and the last tile (which is always the lower right). The last tile should contain most title blocks due to the dimensions of the tiles and resolution.
+tiles_to_parse = tile_info_df[
+    tile_info_df.unique_key.str.contains("|".join(metadata_df.unique_key.astype(str)))
+]
+
 tag_results = []
-for idx, row in tile_info_df[
-    tile_info_df.file_path_hash.isin(metadata_df.file_path_hash)
-].iterrows():
+for idx, row in tiles_to_parse.iterrows():
     tag_row = image_processor._parse_row(row, "tag")
     tag_results.append(tag_row)
 
 # COMMAND ----------
+# %%
 
 # refresh spark connection
 tag_df = pd.DataFrame(tag_results)

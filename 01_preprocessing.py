@@ -10,18 +10,22 @@
 # MAGIC This notebook works with serverless.
 
 # COMMAND ----------
+# %%
 
 # MAGIC %pip install uv
 
 # COMMAND ----------
+# %%
 
 # MAGIC %sh uv pip install .
 
 # COMMAND ----------
+# %%
 
 # MAGIC %restart_python
 
 # COMMAND ----------
+# %%
 
 import hashlib
 from pathlib import Path
@@ -32,19 +36,23 @@ from src.preprocess import process_pdf_to_tiles
 from src.config import load_config
 
 # COMMAND ----------
+# %%
 
 spark = get_spark()
 config = load_config("config_local.yaml")
 ppconfig = config.preprocess
 
 # COMMAND ----------
+# %%
 
 # MAGIC %md
 # MAGIC # Page Tiling
 # MAGIC We use [pdfplumber](https://github.com/jsvine/pdfplumber) to deal with multipage pdfs, and the python image library ([PIL](https://pillow.readthedocs.io/en/stable/)) to crop them into tiles. This has the advantage of keeping a relatively consistent tile size (edges excluded) and maintaining a consistent resolution among different pdf pages.
 
 # COMMAND ----------
+# %%
 
+# This can be done in batches as the tiling is quite fast, or we can append to our metadata table each file as we go.
 all_metadata = []
 for pdf_file_path in Path(ppconfig.raw_path).glob("*.pdf"):
     print(pdf_file_path)
@@ -64,16 +72,19 @@ for pdf_file_path in Path(ppconfig.raw_path).glob("*.pdf"):
     all_metadata.extend(metadata)
 
 # COMMAND ----------
+# %%
 
 len(all_metadata)
 
 # COMMAND ----------
+# %%
 
 # MAGIC %md
 # MAGIC ## Metadata
 # MAGIC When dealing with a huge number of files, it is important to keep track of metadata. We will be doing inference on both the whole pages and individual tiles, so need both logged and ready to go. We write this file into spark for future use and driving our parsing workflow.
 
 # COMMAND ----------
+# %%
 
 spark = get_spark()
 if spark:

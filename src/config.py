@@ -3,9 +3,9 @@ Configuration models for P&ID processing pipeline.
 """
 
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Literal
 import yaml
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class PreprocessConfig(BaseModel):
@@ -99,6 +99,38 @@ class ParseConfig(BaseModel):
         return v
 
 
+class EvaluateConfig(BaseModel):
+    """Configuration for evaluation pipeline."""
+
+    ground_truth_source: Literal["json", "load_sheet"] = Field(
+        ..., description="Source of ground truth data: 'json' or 'load_sheet'"
+    )
+    metadata_tag_source: Literal["local", "spark"] = Field(
+        "spark", description="Source for metadata and tags: 'local' or 'spark'"
+    )
+    ground_truth_json_path: Optional[str] = Field(
+        None,
+        description="Path to JSON examples directory (required if source is 'json')",
+    )
+    ground_truth_table: Optional[str] = Field(
+        None,
+        description="Name of ground truth table (required if source is 'load_sheet')",
+    )
+
+    @model_validator(mode="after")
+    def validate_ground_truth_dependencies(self) -> "EvaluateConfig":
+        """Validate that required fields are provided based on ground_truth_source."""
+        if self.ground_truth_source == "json" and not self.ground_truth_json_path:
+            raise ValueError("ground_truth_json_path is required when source is 'json'")
+
+        if self.ground_truth_source == "load_sheet" and not self.ground_truth_table:
+            raise ValueError(
+                "ground_truth_table is required when source is 'load_sheet'"
+            )
+
+        return self
+
+
 class PIDConfig(BaseModel):
     """Main configuration for P&ID processing pipeline."""
 
@@ -106,6 +138,7 @@ class PIDConfig(BaseModel):
     db_schema: str = Field(..., alias="schema", description="Databricks schema name")
     preprocess: PreprocessConfig = Field(..., description="Preprocessing configuration")
     parse: ParseConfig = Field(..., description="Parsing configuration")
+    evaluate: EvaluateConfig = Field(..., description="Evaluation configuration")
 
     @field_validator("catalog", "db_schema")
     @classmethod
@@ -174,3 +207,17 @@ def get_parse_config(config_path: str = "config.yaml") -> ParseConfig:
     """
     config = load_config(config_path)
     return config.parse
+
+
+def get_evaluate_config(config_path: str = "config.yaml") -> EvaluateConfig:
+    """
+    Load only evaluation configuration.
+
+    Args:
+        config_path: Path to configuration YAML file
+
+    Returns:
+        EvaluateConfig instance
+    """
+    config = load_config(config_path)
+    return config.evaluate

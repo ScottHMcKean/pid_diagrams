@@ -1,6 +1,6 @@
 import re
 import json
-from typing import Dict, List, Any, Tuple
+from typing import Dict, List, Any, Tuple, Optional
 import pandas as pd
 from pathlib import Path
 import numpy as np
@@ -145,16 +145,67 @@ def load_ground_truth_json(config: PIDConfig) -> pd.DataFrame:
     return pd.DataFrame(ground_truth_series)
 
 
-def load_parsed_metadata(spark: DatabricksSession, config: PIDConfig) -> pd.DataFrame:
-    """Load and process parsed metadata from spark table.
+def load_ground_truth(
+    config: PIDConfig, spark: DatabricksSession = None
+) -> pd.DataFrame:
+    """
+    Load ground truth data based on configuration.
 
     Args:
+        config: PIDConfig object with evaluation settings
+        spark: Optional DatabricksSession for load_sheet mode
+
+    Returns:
+        DataFrame with ground truth data
+
+    Raises:
+        ValueError: If configuration is invalid or required parameters missing
+    """
+    if config.evaluate.ground_truth_source == "json":
+        if not config.evaluate.ground_truth_json_path:
+            raise ValueError("ground_truth_json_path is required when source is 'json'")
+
+        # Create a temporary config with the JSON path set as example_path
+        # This maintains backward compatibility with load_ground_truth_json
+        temp_config = config.model_copy(deep=True)
+        temp_config.parse.example_path = config.evaluate.ground_truth_json_path
+
+        return load_ground_truth_json(temp_config)
+
+    elif config.evaluate.ground_truth_source == "load_sheet":
+        if not config.evaluate.ground_truth_table:
+            raise ValueError(
+                "ground_truth_table is required when source is 'load_sheet'"
+            )
+        if spark is None:
+            spark = get_spark()
+
+        return load_ground_truth_load_sheet(spark, config.evaluate.ground_truth_table)
+
+    else:
+        raise ValueError(
+            f"Invalid ground_truth_source: {config.evaluate.ground_truth_source}. "
+            "Must be 'json' or 'load_sheet'"
+        )
+
+
+def load_parsed_metadata(
+    spark: Optional[DatabricksSession], config: PIDConfig
+) -> pd.DataFrame:
+    """Load and process parsed metadata based on config source.
+
+    Args:
+        spark: Spark session (optional, required only for spark mode)
         config: PIDConfig object
 
     Returns:
         DataFrame with parsed metadata
     """
-    if spark:
+    if config.evaluate.metadata_tag_source == "spark":
+        if spark is None:
+            raise ValueError(
+                "Spark session is required when metadata_tag_source is 'spark'"
+            )
         return load_parsed_metadata_spark(spark, config)
     else:
         return load_parsed_metadata_local(config)
@@ -174,12 +225,10 @@ def load_parsed_metadata_spark(
     output_metadata_raw = spark.table(
         f"{config.catalog}.{config.schema}.{config.parse.metadata_table_name}"
     ).toPandas()
-    output_metadata_raw["parsed_metadata"]
     output_metadata_raw["parsed_metadata"] = output_metadata_raw.parsed_metadata.apply(
         lambda x: json.loads(x)
     )
     output_metadata = pd.json_normalize(output_metadata_raw.parsed_metadata)
-    output_metadata["unique_key"] = output_metadata_raw.unique_key.str[0:-3].values
     return output_metadata
 
 
@@ -195,7 +244,6 @@ def load_parsed_tags_spark(spark: DatabricksSession, config: PIDConfig) -> pd.Da
     output_tags = spark.table(
         f"{config.catalog}.{config.schema}.{config.parse.tags_table_name}"
     ).toPandas()
-    output_tags["unique_key"] = output_tags.unique_key.str[0:-3].values
     return output_tags
 
 
@@ -219,9 +267,8 @@ def load_parsed_metadata_local(config: PIDConfig) -> pd.DataFrame:
     except:
         pass
 
-    metadata_df = pd.json_normalize(output.parsed_metadata)
-    metadata_df["unique_key"] = output.unique_key.str[0:-3].values
-    return metadata_df
+    metadata = pd.json_normalize(output.parsed_metadata)
+    return pd.concat([output, metadata], axis=1)
 
 
 def load_parsed_tags_local(config: PIDConfig) -> pd.DataFrame:
@@ -236,20 +283,26 @@ def load_parsed_tags_local(config: PIDConfig) -> pd.DataFrame:
     output_tags = pd.read_parquet(
         Path(config.parse.local_tables_path) / f"{config.parse.tags_table_name}.parquet"
     )
-    output_tags["unique_key"] = output_tags.unique_key.str[0:-3].values
     return output_tags
 
 
-def load_parsed_tags(spark: DatabricksSession, config: PIDConfig) -> pd.DataFrame:
-    """Load and process parsed tags from spark table.
+def load_parsed_tags(
+    spark: Optional[DatabricksSession], config: PIDConfig
+) -> pd.DataFrame:
+    """Load and process parsed tags based on config source.
 
     Args:
+        spark: Spark session (optional, required only for spark mode)
         config: PIDConfig object
 
     Returns:
         DataFrame with parsed tags
     """
-    if spark:
+    if config.evaluate.metadata_tag_source == "spark":
+        if spark is None:
+            raise ValueError(
+                "Spark session is required when metadata_tag_source is 'spark'"
+            )
         return load_parsed_tags_spark(spark, config)
     else:
         return load_parsed_tags_local(config)
@@ -267,10 +320,13 @@ def combine_metadata_and_tags(
     Returns:
         DataFrame with combined metadata and tags
     """
+    tags_df = tags_df.copy()
     combined_tags = {}
 
-    for unique_key in tags_df["unique_key"].unique():
-        key_rows = tags_df[tags_df["unique_key"] == unique_key]
+    tags_df["page_unique_key"] = tags_df["unique_key"].str.extract(r"(.+_p\d+)")[0]
+
+    for unique_key in tags_df["page_unique_key"].unique():
+        key_rows = tags_df[tags_df["page_unique_key"] == unique_key]
         combined_tags_for_key = {}
         for _, row in key_rows.iterrows():
             tag_dict = json.loads(row["parsed_tag"])
@@ -305,11 +361,13 @@ def combine_metadata_and_tags(
 
     # Convert to DataFrame
     combined_tags_df = pd.DataFrame(combined_tags).T
-    combined_tags_df.index.name = "unique_key"
+    combined_tags_df.index.name = "page_unique_key"
     combined_tags_df = combined_tags_df.reset_index()
 
     # Merge metadata with combined tags
-    parsed_df = metadata_df.merge(combined_tags_df, on="unique_key", how="left")
+    parsed_df = metadata_df.merge(
+        combined_tags_df, left_on="unique_key", right_on="page_unique_key", how="left"
+    ).drop(columns=["page_unique_key"])
 
     return parsed_df
 
