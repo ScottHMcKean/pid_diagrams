@@ -86,7 +86,7 @@ sample_unique_keys = [
 
 # COMMAND ----------
 
-pages_to_parse = pages_to_parse[pages_to_parse.unique_key.isin(sample_unique_keys)]
+# pages_to_parse = pages_to_parse[pages_to_parse.unique_key.isin(sample_unique_keys)]
 
 # COMMAND ----------
 
@@ -100,20 +100,24 @@ mlflow.set_experiment('/Users/scott.mckean@databricks.com/experiments/pid_diagra
 
 # COMMAND ----------
 
-# Searching prompt example
-metadata_prompt = [x for x in mlflow.genai.search_prompts("catalog = 'shm' AND schema = 'pid'") if 'metadata' in x.name][0]
-version = metadata_prompt.tags['PromptVersionCount']
-old_prompt = mlflow.genai.load_prompt(f"prompts:/{metadata_prompt.name}/{version}").template
-
-# COMMAND ----------
-
 # register the prompt
-register_prompt = False
+register_prompt = True
 if register_prompt:
     mlflow.genai.register_prompt(
         name="shm.pid.metadata_prompt",
         template=pconfig.metadata_prompt,
     )
+    mlflow.genai.register_prompt(
+        name="shm.pid.tag_prompt",
+        template=pconfig.metadata_prompt,
+    )
+
+# COMMAND ----------
+
+# Searching prompt example
+metadata_prompt = [x for x in mlflow.genai.search_prompts("catalog = 'shm' AND schema = 'pid'") if 'metadata' in x.name][0]
+version = metadata_prompt.tags['PromptVersionCount']
+old_prompt = mlflow.genai.load_prompt(f"prompts:/{metadata_prompt.name}/{version}").template
 
 # COMMAND ----------
 
@@ -167,6 +171,10 @@ for idx, row in tiles_to_parse.iterrows():
 # COMMAND ----------
 
 spark = get_spark()
+
+# COMMAND ----------
+
+spark = get_spark()
 tag_df = pd.DataFrame(tag_results)
 if spark:
     tag_df["parsed_tag"] = tag_df["parsed_tag"].apply(json.dumps)
@@ -178,11 +186,3 @@ if spark:
     )
 else:
     pd.DataFrame(tag_df).to_parquet(Path("local_tables") / "tag_results.parquet")
-
-# COMMAND ----------
-
-tag_df
-
-# COMMAND ----------
-
-

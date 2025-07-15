@@ -49,17 +49,20 @@ def clean_pid_tags(tags_dict: dict[str, list[str]]) -> dict[str, list[str]]:
             cleaned_tags = [
                 re.sub(r"\([^)]*\)", "", str(tag)).strip()
                 for tag in tag_list
-                if isinstance(tag, (str, int, float)) and "-" in str(tag)
+                if (
+                    isinstance(tag, (str, int, float))
+                    and "-" in str(tag)
+                    and str(tag).count("-") >= 2
+                )
             ]
         elif category in ["incoming_streams", "outgoing_streams"]:
             cleaned_tags = [
                 re.sub(r"\([^)]*\)", "", str(tag)).strip()
                 for tag in tag_list
-                if isinstance(tag, (str, int, float)) and "." in str(tag)
+                if isinstance(tag, (str, int, float))
             ]
         else:
-            # For other categories (like locations, legacy_numbers, moc_numbers),
-            # ensure we have a clean list of strings
+            # For other categories (like locations, legacy_numbers, moc_numbers), ensure we have a clean list of strings
             cleaned_tags = [
                 str(tag).strip()
                 for tag in tag_list

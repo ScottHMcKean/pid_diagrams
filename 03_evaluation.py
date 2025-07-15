@@ -58,10 +58,6 @@ spark.table(config.evaluate.ground_truth_table).display()
 
 # COMMAND ----------
 
-tags_df
-
-# COMMAND ----------
-
 # Load ground truth and parsed data using unified function
 ground_truth_df = load_ground_truth(config, spark)
 
@@ -80,7 +76,11 @@ parsed_df = combine_metadata_and_tags(metadata_df, tags_df).rename(
 
 # COMMAND ----------
 
-parsed_df[parsed_df.unique_key == '1d2b79cb44a103be00011e4dd3a26022_p1'].combined_tags[0]
+ground_truth_df[ground_truth_df.unique_key == 'ddd29e2a334e61750b34a978f06c3643_p1'].combined_tags.iloc[0]
+
+# COMMAND ----------
+
+parsed_df[parsed_df.unique_key == 'ddd29e2a334e61750b34a978f06c3643_p1'].combined_tags.iloc[0]
 
 # COMMAND ----------
 
@@ -97,3 +97,7 @@ metrics_df = evaluate_parsed_vs_ground_truth(
 metrics_df.drop("unique_key", axis=1).agg(
     ["mean", "max", "min", "count", "std"]
 ).T.round(2)
+
+# COMMAND ----------
+
+

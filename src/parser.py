@@ -11,6 +11,7 @@ import copy
 from datetime import datetime
 import mlflow
 from mlflow.entities import SpanType
+from mlflow import MlflowClient
 
 from src.config import ParseConfig
 from src.preprocess import load_image_w_max_size

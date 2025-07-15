@@ -56,7 +56,7 @@ parse:
     3. Identify the revision history and look at the dates
     4. Find the most recent revision and use that as the revision and date
     5. The organization is in the title block and refers to the organization that issued the drawings.
-    6. The locations should also be in the title block and refer to physical locations that the drawing refers to.
+    6. The locations should also be in the title block and refer to physical locations that the drawing refers to. Locations should always have a facility (ALB), plant (JPP, MLB, etc.), and an area (250), e.g. ALB-JPP-250. The plant is ususally the first part of the drawing name. The area is the second part.
     7. Look for an engineering stamp which has a signature and date along with a stamp symbol and number
     8. Reflect on the captured information. Did you find everything? Does it match the both the drawing and the zoomed in image?
     9. Return the information in a valid JSON format.
@@ -88,7 +88,7 @@ parse:
     - MOC numbers are often in the comments or diagram area, usually in clouded text blocks. The refer to a change to the drawing.
     - Incoming streams are denoted by a block arrow with text pointing inside the drawing. 
     - Outgoing streams are denoted by a block arrow with text pointing outside the drawing.
-    - Only extract the number from the streams - it should have a dot notation (e.g. 241.005)
+    - Only extract the number from the streams (e.g. 241.005, 4755)
     - Line tags are often directly below a line and usually have a size (e.g. 4\")
     - Line tags must always contain a dash, an abbreviation, and a number (e.g. 14\"-P-241001-SEG)
     - Equipment tags are often on multiple lines within a shape (square, circle, diamond) with an abbreviation and a dash (PT-250)
@@ -97,18 +97,19 @@ parse:
     - Avoid non-ANSI special symbols
     - Always escape dimensional symbols (e.g \")
     - Partial dimensions (1.5" should be represented by fractions and dashed, e.g. 1-1/2", 5-3/4", 3/4" etc.)
-    - Most tags should be preceded by the area (e.g. 451-PV-10005). If they don't have the area, add it (e.g. PV-10005 should be 451-PV-10005)
-    - The tags are always AREA-ABBREVIATION-NUMBER, for example 451-PV-10005. There should never by a number in the abbreviation (PIT is okay, P1T is bad). Change numbers to letters. If the tag doesn't have an area (e.g. PP-140), add it (e.g. 400-PP-140).
-
-    Abbreviations:
-
+    - Tags should be preceded by the area (e.g. 451-PV-1005). If they don't have the area, add it (e.g. PV-1005 should be 451-PV-1005)
+    - The equipment tags are always AREA-PRIMCODE-NUMBER, for example 451-PV-10005. There should never by a number in the abbreviation (PIT is good, P1T is bad). Change numbers to letters. If the tag doesn't have an area (e.g. PP-140), add it (e.g. 400-PP-140). The may also be an AUX CODE after the main number (400-PP-140A-MO-01) in some tags, but this is optional.
+    - Equipment code abbreviations include AG: Agitator / Rotating Mixer, AX: Air Cooled Heat Exchanger, BG: Barge or Dredge, BL: Blower, BN: Bin, BR: Boiler, BS: Conveyor Belt Cleaner / Scraper, BT: Conveyor Take-Up / Tensioner, BU: Burner, BX: Process or Office Building, CD: Hydraulic Cylinder, CG: Centrifuge, CM: Compressor, CO: Coupling (specialized, auxiliary), CP: Lubrication System Control Panel/Enclosure, CR: Crusher, CS: Motor Control Station, CT: Cooling Tower, CV: Conveyor, CY: Cyclone, DF: Diffuser, DR: Air Dryer, DU: Chute/Skirting/Duct, EJ: Vacuum Equipment/Ejector, EL: Elevator, EN: Engine (various applications), EP: Electrostatic Precipitator, FA: Fan, FC: Flotation Cell, FE: Feeder, FK: Fork Lift, FL: Filter / Baghouse / Strainer, FM: Flame Arrestor, FN: Furnace, FR: Flare, GN: Grinder, GR: Gearbox (various applications), GT: Sluice Gate, HE: Electric Heater, HF: Fired Heater, HI: Crane/Hoist, HO: Hopper, HM: Hydraulic Motor, HP: Hydraulic Power Pack, ID: Idler, LR: Launch/Receiver (Pig/Scraper), LU: Lubrication System Package, MB: Service Boat, MD: Tramp Metal Removal Magnet, MO: Electric Motor, MX: Static Mixer, NZ: Nozzle, OPPSD: Over Pressure Protection by System Design Tag, PA: Conveyor Pulley, PAW: Parts Washer, PK: Packaged Equipment/System, PL: Conveyor Belt Pulley Scraper, PO: Pond, PSC: Primary Separation Cell, PU: Pump, PW: Well / Potable Water Well, PX: Flotation Box / Pump Box, SH: Shredder / Cutter Head, SI: Silencer, SL: Surge Bin or Silo, SM: Skimmer, SN: Rotary Breaker / Screen / Vibrator, SS: Soft Starter (Electrical), ST: Stack, SU: Sump, SW: Disconnect Switch, SX: Heat Exchanger / Chiller, TBG: Gas Turbine Drive, TBS: Steam Turbine Drive, TF: Terminator, TH: Thickener, THR: Thickener Rake, TK: Tank, TW: Tower, VE: Pressure Vessel (includes Accumulator, Column, Drum, etc.), VF: Variable Frequency Drive, VLV: Manual Piping Valve, WN: Winch
+    - Line tags are always AREA-FLUID-PIPESIZE-PIPECLASS-TRAIN-SEQUENCE, for example 300-GP-28"-L5A-401001.
+    - Example fluid codes include BD: Blowdown, BF: Boiler Feed Water, BW: Basal Aquifer Water, C: Condensate, CL: Sodium Hypochlorite, CW: Cooling Water, DW: Domestic Water (Potable), F: Gasoline / Diesel Fuel, FM: Foam, FW: Fire Water, GP: General Process Fluid (Froth / Diluted Froth / Solvent / Coarse Slurry / Fine Slurry / Slurry with Solvent / Diluted Bitumen), GW: Gland Water, HS: Sulphuric Acid, HT: Refrigerant / Heat Transfer Fluid / Glycol, HW: Hot Process Water, IA: Instrument Air, K: Acid / MIBC / Kerosene / Chlorine / Flocculants / Mercaptan / Gypsum / Corrosion Inhibitor / Anti-foamer, LP: Lubricating Products (Lube Oil / Seal Oil), M: Carbon Dioxide, N: Nitrogen, NG: Natural Gas, OW: Oily Water / Flare Liquids, PA: Process Air, PG: Process Gas, PW: Process Water (Reclaim Water / Cold Process Water / Warm Process Water / Floor Wash / Pan Wash / Recycle Water / Dyke/Seepage Water), RW: Raw Water, S: Steam, SW: Sanitary Sewer Water, TR: Equipment Trim, TW: Treated Water, UA: Utility Air, UW: Utility Water, WW: Well Water
+    
     Thought Process:
     1. Find all the equipment tags in the drawing
     2. Find all the line tags in the drawing
     3. Find all the incoming and outgoing streams in the drawing
     4. Extract any MOC numbers or comments in the drawing
     5. Review the extracted information. Did you find everything? Does it match the both the drawing and the zoomed in image?
-    6. Look at the tags carefully - do they match the guidelines above? Make sure you aren't inventing tags that don't exist.
+    6. Look at the tags carefully - do they match the guidelines above? Make sure you aren't inventing tags that don't exist. If they don't match the above guidelines, don't include them.
     7. Return the extracted information in a valid JSON format.
 
     IMPORTANT: Respond with valid JSON only. Do not wrap in markdown code blocks or add any explanatory text. Start directly with { and end with }.
@@ -116,9 +117,9 @@ parse:
     Example output:
     {
       equipment_tags: [250-LT-1610, 250-MV-1630, 250-OW-6\"-A4A-1202, 250-PU-105B],
-      line_tags: [14\"-SU-241001-SEG],
-      incoming_streams: [240.003]
-      outgoing_streams: [241.005, 241.006],
+      line_tags: [250-14\"-SU-241001-SEG],
+      incoming_streams: [240.003, 4744]
+      outgoing_streams: [241.005, 6630],
       moc_numbers: [102393],
       comments: [
         FEED/STEAM PREHEATER SPRAY ATTEMPERATOR,
