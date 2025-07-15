@@ -9,6 +9,8 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any, List, Optional
 import copy
 from datetime import datetime
+import mlflow
+from mlflow.entities import SpanType
 
 from src.config import ParseConfig
 from src.preprocess import load_image_w_max_size
@@ -19,7 +21,6 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 
-
 class ParsingHandler(ABC):
     """Abstract base class for different API request handlers"""
 
@@ -29,23 +30,18 @@ class ParsingHandler(ABC):
         pass
 
 
+from mlflow.entities import SpanType
+
 class OpenAIRequestHandler:
     def __init__(self, client, config: ParseConfig):
         self.client = client
         self.config = config
+        self.mlflow_client = MlflowClient()
 
-    def make_request(self, prompt: str, content: List[Dict[str, Any]]) -> str:
-        chat_completion = self.client.chat.completions.create(
-            messages=[
-                {
-                    "role": "system",
-                    "content": prompt,
-                },
-                {
-                    "role": "user",
-                    "content": content,
-                },
-            ],
+    @mlflow.trace(name='thinking', span_type=SpanType.LLM)
+    def thinking_chat_completion(self, messages: list):
+        return self.client.chat.completions.create(
+            messages=messages,
             model=self.config.fm_endpoint,
             temperature=self.config.temperature,
             extra_body={
@@ -55,6 +51,20 @@ class OpenAIRequestHandler:
                 }
             },
         )
+
+    def make_request(self, prompt: str, content: List[Dict[str, Any]]) -> str:
+        messages=[
+                {
+                    "role": "system",
+                    "content": prompt,
+                },
+                {
+                    "role": "user",
+                    "content": content,
+                },
+            ]
+        
+        chat_completion = self.thinking_chat_completion(messages)
         return chat_completion.choices[0].message.content
 
 

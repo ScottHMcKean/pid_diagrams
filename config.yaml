@@ -19,7 +19,7 @@ parse:
   thinking_budget_tokens: 2048
   max_retries: 2
   retry_delay_s: 1
-  overwrite: false
+  overwrite: true
   num_few_shot_examples: 2
   metadata_prompt: |
     You are an expert in parsing process and instrumentation diagrams and engineering drawings. You will be given a full drawing and a zoomed in excerpt of the title block and your task is to extract metadata including:
@@ -37,19 +37,14 @@ parse:
     - Do not extract tags or equipment numbers and focus solely on the metadata in the title block. 
     - Only return information from the drawing and do not try to interpet or invent a response.
     - The revision is usually in the lower right corner besdie the drawing name
-    - The data is often accompanies by "ISSUED FOR ..."
+    - The data is often accompanied by "ISSUED FOR ..."
     - Legacy numbers are drawings numbers that differ from the main drawing name in the title block
     - Organization is meant to be an abbreviation of an engineering company that made the drawings, here are some common ones:
-    'RAPR': 
-    'SCAN': 
     'CNRL': Canadian Natural Resources Limited
     'AMEC': AMEC Engineering
-    'MRCCA':
-    'MRC':
     'FLUOR': Fluor Engineering
     'JACOBS': Jacobs Engineering
-    'REDLINE':
-    'FRAN': 
+    'REDLINE': Redline Technical Inc
     'ATCO': ATCO Limited
     'TET': Tetratech
     'WOPAR': Worley Parsons
@@ -97,10 +92,15 @@ parse:
     - Line tags are often directly below a line and usually have a size (e.g. 4\")
     - Line tags must always contain a dash, an abbreviation, and a number (e.g. 14\"-P-241001-SEG)
     - Equipment tags are often on multiple lines within a shape (square, circle, diamond) with an abbreviation and a dash (PT-250)
-    - Only extract equipment tags that have a dash and a number (e.g. 'PP-140' but not 'PP')
+    - Only extract equipment tags that have a dash and a number (e.g. '450-PP-140' but not 'PP')
     - Comments are anything outside of the tags and streams and should be read as a list of text entries
     - Avoid non-ANSI special symbols
     - Always escape dimensional symbols (e.g \")
+    - Partial dimensions (1.5" should be represented by fractions and dashed, e.g. 1-1/2", 5-3/4", 3/4" etc.)
+    - Most tags should be preceded by the area (e.g. 451-PV-10005). If they don't have the area, add it (e.g. PV-10005 should be 451-PV-10005)
+    - The tags are always AREA-ABBREVIATION-NUMBER, for example 451-PV-10005. There should never by a number in the abbreviation (PIT is okay, P1T is bad). Change numbers to letters. If the tag doesn't have an area (e.g. PP-140), add it (e.g. 400-PP-140).
+
+    Abbreviations:
 
     Thought Process:
     1. Find all the equipment tags in the drawing
@@ -127,6 +127,6 @@ parse:
     }
 evaluate:
   ground_truth_source: load_sheet
-  metadata_tag_source: local
+  metadata_tag_source: spark
   ground_truth_json_path: /Volumes/shm/pid/alb_examples
   ground_truth_table: shm.pid.alb_load_sheet

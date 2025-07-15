@@ -64,7 +64,7 @@ If you want to run the code locally, use local_notebooks and uv for dependency m
 ```bash
 uv venv --python=3.11.11
 source .venv/bin/activate
-uv pip install -r requirements.txt
+uv pip install .
 ```
 
 Activate your environment using `source .venv/bin/activate`

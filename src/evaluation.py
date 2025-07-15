@@ -71,21 +71,6 @@ def clean_pid_tags(tags_dict: dict[str, list[str]]) -> dict[str, list[str]]:
     return cleaned_dict
 
 
-def load_ground_truth_load_sheet(
-    spark: DatabricksSession, table_name: str
-) -> pd.DataFrame:
-    """Load and process ground truth data from spark table of a load sheet.
-    Args:
-        table_name: Name of the spark table
-
-    Returns:
-        DataFrame with ground truth data
-    """
-    spark = get_spark()
-    ground_truth_df = spark.table(table_name).toPandas()
-    return ground_truth_df
-
-
 def load_ground_truth_json(config: PIDConfig) -> pd.DataFrame:
     """Load and process ground truth data from examples directory or volume.
 
@@ -164,12 +149,6 @@ def load_ground_truth(
     if config.evaluate.ground_truth_source == "json":
         if not config.evaluate.ground_truth_json_path:
             raise ValueError("ground_truth_json_path is required when source is 'json'")
-
-        # Create a temporary config with the JSON path set as example_path
-        # This maintains backward compatibility with load_ground_truth_json
-        temp_config = config.model_copy(deep=True)
-        temp_config.parse.example_path = config.evaluate.ground_truth_json_path
-
         return load_ground_truth_json(temp_config)
 
     elif config.evaluate.ground_truth_source == "load_sheet":
@@ -180,7 +159,8 @@ def load_ground_truth(
         if spark is None:
             spark = get_spark()
 
-        return load_ground_truth_load_sheet(spark, config.evaluate.ground_truth_table)
+        ground_truth_df = spark.table(config.evaluate.ground_truth_table).toPandas()
+        return ground_truth_df
 
     else:
         raise ValueError(
@@ -210,6 +190,24 @@ def load_parsed_metadata(
     else:
         return load_parsed_metadata_local(config)
 
+def load_parsed_metadata_local(config: PIDConfig) -> pd.DataFrame:
+    """Load and process parsed data from parquet files.
+
+    Args:
+        local_tables_path: Path to directory containing parquet files
+
+    Returns:
+        DataFrame with parsed data
+    """
+    output = pd.read_parquet(
+        Path(config.parse.local_tables_path)
+        / f"{config.parse.metadata_table_name}.parquet"
+    )
+    output["parsed_metadata"] = output.parsed_metadata.apply(
+        lambda x: json.loads(x)
+    )
+    metadata = pd.json_normalize(output.parsed_metadata)
+    return pd.concat([output, metadata], axis=1)
 
 def load_parsed_metadata_spark(
     spark: DatabricksSession, config: PIDConfig
@@ -222,14 +220,14 @@ def load_parsed_metadata_spark(
     Returns:
         DataFrame with parsed metadata
     """
-    output_metadata_raw = spark.table(
+    output = spark.table(
         f"{config.catalog}.{config.schema}.{config.parse.metadata_table_name}"
     ).toPandas()
-    output_metadata_raw["parsed_metadata"] = output_metadata_raw.parsed_metadata.apply(
+    output["parsed_metadata"] = output.parsed_metadata.apply(
         lambda x: json.loads(x)
     )
-    output_metadata = pd.json_normalize(output_metadata_raw.parsed_metadata)
-    return output_metadata
+    metadata = pd.json_normalize(output.parsed_metadata)
+    return pd.concat([output, metadata], axis=1)
 
 
 def load_parsed_tags_spark(spark: DatabricksSession, config: PIDConfig) -> pd.DataFrame:
@@ -245,31 +243,6 @@ def load_parsed_tags_spark(spark: DatabricksSession, config: PIDConfig) -> pd.Da
         f"{config.catalog}.{config.schema}.{config.parse.tags_table_name}"
     ).toPandas()
     return output_tags
-
-
-def load_parsed_metadata_local(config: PIDConfig) -> pd.DataFrame:
-    """Load and process parsed data from parquet files.
-
-    Args:
-        local_tables_path: Path to directory containing parquet files
-
-    Returns:
-        DataFrame with parsed data
-    """
-    output = pd.read_parquet(
-        Path(config.parse.local_tables_path)
-        / f"{config.parse.metadata_table_name}.parquet"
-    )
-    try:
-        output["parsed_metadata"] = output.parsed_metadata.apply(
-            lambda x: json.loads(x)
-        )
-    except:
-        pass
-
-    metadata = pd.json_normalize(output.parsed_metadata)
-    return pd.concat([output, metadata], axis=1)
-
 
 def load_parsed_tags_local(config: PIDConfig) -> pd.DataFrame:
     """Load and process parsed tags from local parquet files.
@@ -372,6 +345,15 @@ def combine_metadata_and_tags(
     return parsed_df
 
 
+def get_list_safe(row, key):
+  """ Safe way to get a list"""
+  out = row.get(key, [])
+
+  if isinstance(out, np.ndarray):
+    return out.tolist()
+  
+  return out
+
 def evaluate_parsed_vs_ground_truth(
     ground_truth_df: pd.DataFrame,
     parsed_df: pd.DataFrame,
@@ -402,8 +384,8 @@ def evaluate_parsed_vs_ground_truth(
         result = {"unique_key": row["unique_key"]}
 
         # Combined tags Jaccard similarity (using pre-combined columns)
-        combined_tags_gt = row.get("combined_tags_gt", []) or []
-        combined_tags_parsed = row.get("combined_tags_parsed", []) or []
+        combined_tags_gt = get_list_safe(row, "combined_tags_gt")
+        combined_tags_parsed = get_list_safe(row, "combined_tags_parsed")
         result["tags_jaccard"] = jaccard_similarity(
             combined_tags_gt, combined_tags_parsed
         )
@@ -413,8 +395,8 @@ def evaluate_parsed_vs_ground_truth(
         )
 
         # Combined streams Jaccard similarity (using pre-combined columns)
-        combined_streams_gt = row.get("combined_streams_gt", []) or []
-        combined_streams_parsed = row.get("combined_streams_parsed", []) or []
+        combined_streams_gt = get_list_safe(row, "combined_streams_gt")
+        combined_streams_parsed = get_list_safe(row, "combined_tags_parsed")
         result["streams_jaccard"] = jaccard_similarity(
             combined_streams_gt, combined_streams_parsed
         )

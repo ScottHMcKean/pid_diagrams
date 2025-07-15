@@ -5,21 +5,26 @@
 # MAGIC This notebook uses the parsing outputs to compare against the ground truth labels.
 
 # COMMAND ----------
+
 # MAGIC %pip install uv
 
 # COMMAND ----------
+
 # MAGIC %sh uv pip install .
 
 # COMMAND ----------
+
 # MAGIC %restart_python
 
 # COMMAND ----------
+
 # 1. Pull grount truth labels
 # 2. Write function to combine tags
 # 3. Load parsing outputs
 # 4. Compare parsing outputs to ground truth labels
 
 # COMMAND ----------
+
 # %%
 
 import sys
@@ -27,6 +32,7 @@ import sys
 sys.path.append(".")
 
 # COMMAND ----------
+
 # %%
 import pandas as pd
 from pathlib import Path
@@ -42,9 +48,19 @@ from src.evaluation import (
 )
 
 # COMMAND ----------
-# %%
+
 spark = get_spark()
-config = load_config("config_local.yaml")
+config = load_config("config.yaml")
+
+# COMMAND ----------
+
+spark.table(config.evaluate.ground_truth_table).display()
+
+# COMMAND ----------
+
+tags_df
+
+# COMMAND ----------
 
 # Load ground truth and parsed data using unified function
 ground_truth_df = load_ground_truth(config, spark)
@@ -62,13 +78,11 @@ parsed_df = combine_metadata_and_tags(metadata_df, tags_df).rename(
     columns={"legacy_number": "legacy_numbers"}
 )
 
-# ground_truth_df = ground_truth_df[parsed_df.columns.tolist()]
+# COMMAND ----------
 
-# MAGIC %md
-# MAGIC ## Evaluation Metrics
+parsed_df[parsed_df.unique_key == '1d2b79cb44a103be00011e4dd3a26022_p1'].combined_tags[0]
 
 # COMMAND ----------
-# %%
 
 # Define columns to evaluate
 string_columns = ["drawing_name", "title", "revision", "date", "organization"]
