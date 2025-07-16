@@ -1,5 +1,5 @@
 notebooks/alb_load_sheet.py
-
+mlruns/*
 .DS_Store
 local_tables/*
 parsed_pdfs/*

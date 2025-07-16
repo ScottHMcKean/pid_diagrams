@@ -22,6 +22,7 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 
+
 class ParsingHandler(ABC):
     """Abstract base class for different API request handlers"""
 
@@ -33,13 +34,14 @@ class ParsingHandler(ABC):
 
 from mlflow.entities import SpanType
 
+
 class OpenAIRequestHandler:
     def __init__(self, client, config: ParseConfig):
         self.client = client
         self.config = config
         self.mlflow_client = MlflowClient()
 
-    @mlflow.trace(name='thinking', span_type=SpanType.LLM)
+    @mlflow.trace(name="thinking", span_type=SpanType.LLM)
     def thinking_chat_completion(self, messages: list):
         return self.client.chat.completions.create(
             messages=messages,
@@ -54,17 +56,17 @@ class OpenAIRequestHandler:
         )
 
     def make_request(self, prompt: str, content: List[Dict[str, Any]]) -> str:
-        messages=[
-                {
-                    "role": "system",
-                    "content": prompt,
-                },
-                {
-                    "role": "user",
-                    "content": content,
-                },
-            ]
-        
+        messages = [
+            {
+                "role": "system",
+                "content": prompt,
+            },
+            {
+                "role": "user",
+                "content": content,
+            },
+        ]
+
         chat_completion = self.thinking_chat_completion(messages)
         return chat_completion.choices[0].message.content
 
@@ -103,7 +105,7 @@ class ImageProcessor:
                 return None
         return None
 
-    def _get_few_shot_content(self, task: str) -> List[bytes]:
+    def _get_few_shot_content(self, task: str) -> List[Dict[str, Any]]:
         """Get few shot images from the example paths"""
         if self.config.num_few_shot_examples == 0:
             return []
@@ -112,20 +114,7 @@ class ImageProcessor:
         if task == "tag":
             few_shot_paths = self.tag_files
         elif task == "metadata":
-            few_shot_paths = []
-            for page_file in self.page_files:
-                matching_tag_files = [
-                    file
-                    for file in self.tag_files
-                    if file.stem.startswith(page_file.stem)
-                ]
-                # The last tag file contains the title block (lower right)
-                last_tag_file = (
-                    max(matching_tag_files, key=lambda x: int(x.stem.split("_t")[-1]))
-                    if matching_tag_files
-                    else None
-                )
-                few_shot_paths.append(last_tag_file)
+            few_shot_paths = self.page_files
 
         # limit few shot examples
         # TODO: Replace this with VLM embedding lookups eventually
@@ -135,9 +124,8 @@ class ImageProcessor:
 
         few_shot_content = []
         for path in example_paths:
-
-            # image
-            image_data: bytes = self._load_image(str(path).replace(".json", ".jpg"))
+            image_path = str(path).replace(".json", ".jpg")
+            image_data: str = self._load_image(image_path)
             few_shot_content.append(
                 {
                     "type": "image_url",
@@ -145,9 +133,9 @@ class ImageProcessor:
                 }
             )
 
-            # label
-            with open(str(path), "r") as f:
+            with open(path, "r") as f:
                 label: str = json.dumps(json.load(f), indent=4)
+
             few_shot_content.append(
                 {
                     "type": "text",
@@ -157,7 +145,9 @@ class ImageProcessor:
 
         return few_shot_content
 
-    def make_parse_content(self, row: Dict[str, Any], task: str) -> str:
+    def make_parse_content(
+        self, row: Dict[str, Any], task: str
+    ) -> List[Dict[str, Any]]:
         """Make parse context for the row"""
         content = self._get_few_shot_content(task)
 
@@ -216,7 +206,7 @@ class ImageProcessor:
         """Load and encode image to base64"""
         return load_image_w_max_size(image_path)
 
-    def _extract_json(self, response: str) -> str:
+    def _extract_json(self, response: str) -> Dict[str, Any]:
         """Robustly extract json from the response"""
         cleaned = response.strip()
 
@@ -310,7 +300,6 @@ class ImageProcessor:
             )
 
         self.logger.info(f"Starting {task} parsing for document: {unique_key}")
-        self.logger.info(f"  Page: {page_number}, Tile: {tile_number}")
 
         content = self.make_parse_content(row, task)
         prompt = (
@@ -330,7 +319,7 @@ class ImageProcessor:
         for attempt in range(self.config.max_retries + 1):
             try:
                 self.logger.info(
-                    f"  Attempt {attempt + 1}/{self.config.max_retries + 1} for {unique_key}"
+                    f"  Attempt {attempt + 1}/{self.config.max_retries + 1}"
                 )
                 raw_response = self.request_handler.make_request(prompt, content)
                 full_response["raw_response"] = raw_response

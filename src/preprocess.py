@@ -42,7 +42,7 @@ def load_image_w_max_size(
     max_size_bytes: float = 0.5 * 1024 * 1024,
     target_dpi: int = 72,
     original_dpi: int = 200,
-):
+) -> str:
     """
     Load image and reduce DPI if file size exceeds maximum.
 
@@ -107,7 +107,7 @@ def preprocess_image(
 
 
 def process_pdf_to_tiles(
-    pdf_path: str, output_dir: str, config: PreprocessConfig
+    pdf_path: str | Path, output_dir: str | Path, config: PreprocessConfig
 ) -> List[Dict[str, Any]]:
     """
     Process PDF file into tiled images and return metadata.
@@ -120,12 +120,12 @@ def process_pdf_to_tiles(
     Returns:
         List of metadata dictionaries for each tile
     """
-    pdf_path = Path(pdf_path)
-    output_dir = Path(output_dir)
+    _pdf_path: Path = Path(pdf_path)
+    output_dir: Path = Path(output_dir)
 
     # Create hash and directories
     file_hash = hashlib.md5(str(pdf_path).encode()).hexdigest()
-    tile_dir = output_dir / file_hash / "tiles"
+    tile_dir: Path = output_dir / file_hash / "tiles"
     tile_dir.mkdir(parents=True, exist_ok=True)
 
     metadata = []
@@ -137,7 +137,7 @@ def process_pdf_to_tiles(
             page_img = preprocess_image(page_img)
 
             # Save full page
-            page_path = output_dir / file_hash / f"{file_hash}_p{page_num}.jpg"
+            page_path: Path = output_dir / file_hash / f"{file_hash}_p{page_num}.jpg"
             page_img.save(page_path, "JPEG")
 
             # Get tile positions
@@ -159,14 +159,14 @@ def process_pdf_to_tiles(
                     # Crop and save tile
                     tile = page_img.crop((left, upper, right, lower))
                     tile_filename = f"{file_hash}_p{page_num}_t{tile_count}.jpg"
-                    tile_path = tile_dir / tile_filename
+                    tile_path: Path = tile_dir / tile_filename
                     tile.save(tile_path, "JPEG")
 
                     # Store metadata
                     metadata.append(
                         {
                             "unique_key": f"{file_hash}_p{page_num}_t{tile_count}",
-                            "filename": pdf_path.stem,
+                            "filename": str(pdf_path),
                             "file_path_hash": file_hash,
                             "file_width": width,
                             "file_height": height,

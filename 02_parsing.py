@@ -31,7 +31,7 @@ from src.utils import get_spark, get_token
 # COMMAND ----------
 
 spark = get_spark()
-config = load_config("config.yaml")
+config = load_config("config_local.yaml")
 pconfig = config.parse
 
 # COMMAND ----------
@@ -65,11 +65,10 @@ else:
     )
 
 pages_to_parse = (
-    tile_info_df
-    .sort_values(
+    tile_info_df.sort_values(
         ["filename", "page_number", "tile_number"], ascending=[False, True, False]
     )
-    .groupby(["filename"])
+    .groupby(["filename", "page_number"])
     .first()
     .reset_index()
 )
@@ -77,26 +76,28 @@ pages_to_parse = (
 # COMMAND ----------
 
 sample_unique_keys = [
-  '7203369372d032999062c2d0156e776a_p1_t6',
- 'bb0c134e870dcb5618dd8fcb594bc16a_p1_t6',
- 'ddd29e2a334e61750b34a978f06c3643_p1_t6',
- '579036a2c6cbb4f74243a84961cfdfd8_p1_t6',
- '8011066889c0502abb02a4828e0c6653_p1_t6'
- ]
+    "05010ca2e0d35676718f1cc15862b8fc_p3_t6",
+    #     "7203369372d032999062c2d0156e776a_p1_t6",
+    #     "bb0c134e870dcb5618dd8fcb594bc16a_p1_t6",
+    #     "ddd29e2a334e61750b34a978f06c3643_p1_t6",
+    #     "579036a2c6cbb4f74243a84961cfdfd8_p1_t6",
+    #     "8011066889c0502abb02a4828e0c6653_p1_t6",
+]
 
 # COMMAND ----------
 
-# pages_to_parse = pages_to_parse[pages_to_parse.unique_key.isin(sample_unique_keys)]
+pages_to_parse = pages_to_parse[pages_to_parse.unique_key.isin(sample_unique_keys)]
 
 # COMMAND ----------
 
 import mlflow
-mlflow.set_tracking_uri('databricks')
-mlflow.set_registry_uri('databricks-uc')
+
+mlflow.set_tracking_uri("databricks")
+mlflow.set_registry_uri("databricks-uc")
 
 # COMMAND ----------
 
-mlflow.set_experiment('/Users/scott.mckean@databricks.com/experiments/pid_diagram')
+mlflow.set_experiment("/Users/scott.mckean@databricks.com/experiments/pid_diagram")
 
 # COMMAND ----------
 
@@ -115,9 +116,15 @@ if register_prompt:
 # COMMAND ----------
 
 # Searching prompt example
-metadata_prompt = [x for x in mlflow.genai.search_prompts("catalog = 'shm' AND schema = 'pid'") if 'metadata' in x.name][0]
-version = metadata_prompt.tags['PromptVersionCount']
-old_prompt = mlflow.genai.load_prompt(f"prompts:/{metadata_prompt.name}/{version}").template
+metadata_prompt = [
+    x
+    for x in mlflow.genai.search_prompts("catalog = 'shm' AND schema = 'pid'")
+    if "metadata" in x.name
+][0]
+version = metadata_prompt.tags["PromptVersionCount"]
+old_prompt = mlflow.genai.load_prompt(
+    f"prompts:/{metadata_prompt.name}/{version}"
+).template
 
 # COMMAND ----------
 
