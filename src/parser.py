@@ -43,7 +43,7 @@ class OpenAIRequestHandler:
 
     @mlflow.trace(name="thinking", span_type=SpanType.LLM)
     def thinking_chat_completion(self, messages: list):
-        return self.client.chat.completions.create(
+        response = self.client.chat.completions.create(
             messages=messages,
             model=self.config.fm_endpoint,
             temperature=self.config.temperature,
@@ -54,6 +54,14 @@ class OpenAIRequestHandler:
                 }
             },
         )
+
+        # Fix content type before MLflow serialization
+        original_content = response.choices[0].message.content
+        if isinstance(original_content, list):
+            # Replace the content with the extracted text to avoid serialization issues
+            response.choices[0].message.content = original_content[-1]["text"]
+
+        return response
 
     def make_request(self, prompt: str, content: List[Dict[str, Any]]) -> str:
         messages = [
@@ -68,13 +76,7 @@ class OpenAIRequestHandler:
         ]
 
         chat_completion = self.thinking_chat_completion(messages)
-        response_content = chat_completion.choices[0].message.content
-
-        # Handle case where content is a list (thinking models can return list)
-        if isinstance(response_content, list):
-            return response_content[-1]["text"]
-        else:
-            return response_content
+        return chat_completion.choices[0].message.content
 
 
 class ImageProcessor:
