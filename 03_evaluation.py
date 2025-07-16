@@ -18,22 +18,11 @@
 
 # COMMAND ----------
 
-# 1. Pull grount truth labels
-# 2. Write function to combine tags
-# 3. Load parsing outputs
-# 4. Compare parsing outputs to ground truth labels
-
-# COMMAND ----------
-
-# %%
-
 import sys
-
 sys.path.append(".")
 
 # COMMAND ----------
 
-# %%
 import pandas as pd
 from pathlib import Path
 
@@ -76,11 +65,11 @@ parsed_df = combine_metadata_and_tags(metadata_df, tags_df).rename(
 
 # COMMAND ----------
 
-ground_truth_df[ground_truth_df.unique_key == 'ddd29e2a334e61750b34a978f06c3643_p1'].combined_tags.iloc[0]
+ground_truth_df[ground_truth_df.unique_key == '7203369372d032999062c2d0156e776a_p1'].combined_tags.iloc[0]
 
 # COMMAND ----------
 
-parsed_df[parsed_df.unique_key == 'ddd29e2a334e61750b34a978f06c3643_p1'].combined_tags.iloc[0]
+parsed_df[parsed_df.unique_key == '7203369372d032999062c2d0156e776a_p1'].combined_tags.iloc[0]
 
 # COMMAND ----------
 

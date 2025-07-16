@@ -3,6 +3,15 @@ from databricks.sdk import WorkspaceClient
 from pathlib import Path
 from typing import List, Tuple
 
+def test_spark():
+    try:
+        assert spark is not None
+        spark.sql("SELECT 1")
+    except Exception as e:
+        spark = get_spark()
+    
+    return spark
+
 
 def get_token(workspace_client: WorkspaceClient) -> str:
     """

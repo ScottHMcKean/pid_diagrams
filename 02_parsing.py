@@ -18,6 +18,11 @@
 
 # COMMAND ----------
 
+import sys
+sys.path.append('.')
+
+# COMMAND ----------
+
 from pathlib import Path
 import pandas as pd
 import json
@@ -26,12 +31,12 @@ from openai import OpenAI
 from databricks.sdk import WorkspaceClient
 from src.config import load_config
 from src.parser import OpenAIRequestHandler, ImageProcessor
-from src.utils import get_spark, get_token
+from src.utils import get_token, test_spark
 
 # COMMAND ----------
 
-spark = get_spark()
-config = load_config("config_local.yaml")
+spark = test_spark()
+config = load_config("config.yaml")
 pconfig = config.parse
 
 # COMMAND ----------
@@ -76,12 +81,12 @@ pages_to_parse = (
 # COMMAND ----------
 
 sample_unique_keys = [
-    "05010ca2e0d35676718f1cc15862b8fc_p3_t6",
-    #     "7203369372d032999062c2d0156e776a_p1_t6",
-    #     "bb0c134e870dcb5618dd8fcb594bc16a_p1_t6",
-    #     "ddd29e2a334e61750b34a978f06c3643_p1_t6",
-    #     "579036a2c6cbb4f74243a84961cfdfd8_p1_t6",
-    #     "8011066889c0502abb02a4828e0c6653_p1_t6",
+    # "05010ca2e0d35676718f1cc15862b8fc_p3_t6", #for local testing
+    "7203369372d032999062c2d0156e776a_p1_t6",
+    "bb0c134e870dcb5618dd8fcb594bc16a_p1_t6",
+    "ddd29e2a334e61750b34a978f06c3643_p1_t6",
+    "579036a2c6cbb4f74243a84961cfdfd8_p1_t6",
+    "8011066889c0502abb02a4828e0c6653_p1_t6",
 ]
 
 # COMMAND ----------
@@ -91,7 +96,6 @@ pages_to_parse = pages_to_parse[pages_to_parse.unique_key.isin(sample_unique_key
 # COMMAND ----------
 
 import mlflow
-
 mlflow.set_tracking_uri("databricks")
 mlflow.set_registry_uri("databricks-uc")
 
@@ -102,7 +106,7 @@ mlflow.set_experiment("/Users/scott.mckean@databricks.com/experiments/pid_diagra
 # COMMAND ----------
 
 # register the prompt
-register_prompt = True
+register_prompt = False
 if register_prompt:
     mlflow.genai.register_prompt(
         name="shm.pid.metadata_prompt",
@@ -113,9 +117,8 @@ if register_prompt:
         template=pconfig.metadata_prompt,
     )
 
-# COMMAND ----------
-
 # Searching prompt example
+# TODO: Set prompt version for table outputs
 metadata_prompt = [
     x
     for x in mlflow.genai.search_prompts("catalog = 'shm' AND schema = 'pid'")
@@ -145,7 +148,7 @@ for idx, row in pages_to_parse.iterrows():
 
 # COMMAND ----------
 
-spark = get_spark()
+spark = test_spark()
 metadata_df = pd.DataFrame(metadata_results)
 if spark:
     metadata_df["parsed_metadata"] = metadata_df["parsed_metadata"].apply(json.dumps)
@@ -177,11 +180,7 @@ for idx, row in tiles_to_parse.iterrows():
 
 # COMMAND ----------
 
-spark = get_spark()
-
-# COMMAND ----------
-
-spark = get_spark()
+spark = test_spark()
 tag_df = pd.DataFrame(tag_results)
 if spark:
     tag_df["parsed_tag"] = tag_df["parsed_tag"].apply(json.dumps)
