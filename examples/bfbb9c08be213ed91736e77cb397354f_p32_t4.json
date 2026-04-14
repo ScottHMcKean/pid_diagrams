@@ -1,0 +1,48 @@
+{
+    "equipment_tags": [
+        "TT-243SP",
+        "TT-243P",
+        "TW-202",
+        "TC-201",
+        "TV-203",
+        "TV-201B",
+        "TV-201A",
+        "TT-201",
+        "TT-205",
+        "TE-600",
+        "TE-601",
+        "TE-602",
+        "TE-603",
+        "TT-600",
+        "TT-601",
+        "TT-602",
+        "TT-603"
+    ],
+    "line_tags": [
+        "10\"-P-441076-PAG",
+        "10\"-P-441046-PAG",
+        "10\"-P-441001-PAG",
+        "10\"-P-441072-PAG",
+        "10\"-P-440002-PAG",
+        "12\"-P-441002-PAG"
+    ],
+    "incoming_streams": [
+        "441.008",
+        "441.009",
+        "440.002"
+    ],
+    "outgoing_streams": [
+        "441.001"
+    ],
+    "moc_numbers": [
+        "11467"
+    ],
+    "comments": [
+        "FOR MOC 11467 PROJECT USE ONLY",
+        "WORKING COPY OF MASTER DRAWING ASBUILT INFORMATION REQUIRED",
+        "FLUE GAS",
+        "COMBUSTION AIR",
+        "PROCESS GAS",
+        "ISSUED FOR ESTIMATE 11 Jul 2011"
+    ]
+}

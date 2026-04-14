@@ -1,0 +1,56 @@
+{
+    "equipment_tags": [
+        "E-44112",
+        "E-44114",
+        "E-44115",
+        "E-44116",
+        "E-44117",
+        "H-44102",
+        "TT-217",
+        "TT-243",
+        "TT-243H",
+        "TT-245",
+        "TT-245H",
+        "TW-202",
+        "TC-203",
+        "TT-201",
+        "TV-201B",
+        "TV-201A",
+        "TV-205",
+        "TV-205H",
+        "TT-205",
+        "TT-600",
+        "TT-601",
+        "TT-602",
+        "TT-603",
+        "TE-600",
+        "TE-601",
+        "TE-602",
+        "TE-603"
+    ],
+    "line_tags": [
+        "16\"-SS-441002",
+        "10\"-P-441078-PAG",
+        "10\"-P-441046-PAG",
+        "10\"-P-441001-PAG",
+        "10\"-P-441072-PAG",
+        "16\"-SS-441023-PAG",
+        "4\"-P-441037-PAG"
+    ],
+    "incoming_streams": [
+        "441.006",
+        "441.009"
+    ],
+    "outgoing_streams": [],
+    "moc_numbers": [
+        "FBG/B31.1",
+        "FBG/B31.3"
+    ],
+    "comments": [
+        "FLUE GAS FROM E-44113",
+        "HP STEAM TO J-44102",
+        "(BY VENDOR) (SURFACE METAL TEMP)",
+        "VENDOR BECHTEL",
+        "ASME II"
+    ]
+}

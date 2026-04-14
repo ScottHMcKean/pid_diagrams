@@ -1,0 +1,47 @@
+{
+    "equipment_tags": [
+        "TI-2413",
+        "TI-2410",
+        "TI-2454",
+        "TI-2456",
+        "TI-2454A",
+        "TI-2456A",
+        "TI-2434",
+        "TI-2435",
+        "TI-2434A",
+        "TI-2435A",
+        "TI-2412",
+        "TI-600",
+        "TI-601",
+        "TI-602",
+        "TI-603",
+        "TY-600",
+        "TY-601",
+        "TY-602",
+        "TY-603",
+        "TRP-441-010",
+        "TI-702"
+    ],
+    "line_tags": [
+        "12\"-PC-441008-ZHC",
+        "10\"-PC-441078-ZHC",
+        "10\"-P-441045-PAG"
+    ],
+    "incoming_streams": [
+        "441.008"
+    ],
+    "outgoing_streams": [],
+    "moc_numbers": [],
+    "comments": [
+        "HP STEAM SUPERHEATER I",
+        "FEED PREHEATER II",
+        "PROCESS CONDENSATE PARTIAL EVAPORATOR",
+        "FEED PREHEATER I",
+        "CONVECTION BANK",
+        "COMBUSTION AIR HEATER I",
+        "FLUE GAS",
+        "FROM E-44113",
+        "TWO PHASE FLOW",
+        "SURFACE METAL TEMP"
+    ]
+}

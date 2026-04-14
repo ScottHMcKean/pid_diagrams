@@ -1,0 +1,50 @@
+{
+    "equipment_tags": [
+        "E-44114",
+        "E-44115",
+        "E-44116",
+        "H-44102",
+        "E-44117",
+        "245A",
+        "245B",
+        "245C",
+        "245D",
+        "600",
+        "601",
+        "602",
+        "603",
+        "150"
+    ],
+    "line_tags": [
+        "12\"-PC-441008-J10()",
+        "10\"-PC-441078-Z30",
+        "10\"-PC-441045-PAG",
+        "AP-441003",
+        "AP-441014"
+    ],
+    "incoming_streams": [
+        "441.006",
+        "441.008",
+        "441.009"
+    ],
+    "outgoing_streams": [
+        "441.011",
+        "441.003"
+    ],
+    "moc_numbers": [
+        "11467"
+    ],
+    "comments": [
+        "PREHEATER II",
+        "PROCESS CONDENSATE PARTIAL EVAPORATOR",
+        "FEED PREHEATER I",
+        "CONVECTION BANK",
+        "COMBUSTION AIR HEATER I",
+        "STEAM/CONDENSATE",
+        "COMBUSTION AIR",
+        "FLUE GAS",
+        "FOR MOC 11467 PROJECT USE ONLY",
+        "WORKING COPY OF MASTER DRAWING ASBUILT INFORMATION REQUIRED",
+        "TWO PHASE FLOW"
+    ]
+}
